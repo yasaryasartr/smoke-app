@@ -5,7 +5,8 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -13,12 +14,32 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model accounts {
+model Account {
+  id              Int        @id @default(autoincrement())
+  status          Int        @default(1)
+  name            String     @unique
+  email           String?
+  supplierId      Int?
+  locations       Location[] @relation("AccountLocations")
+  users           User[]     @relation("AccountUsers")
+  customerDevices Device[]   @relation("DeviceCustomer")
+  supplierDevices Device[]   @relation("DeviceSupplier")
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime?  @updatedAt
+  deletedAt       DateTime?
+  createdUserId   Int?
+  updatedUserId   Int?
+  deletedUserId   Int?
+}
+
+model User {
   id            Int       @id @default(autoincrement())
-  status        Int
-  name          String    @unique
+  status        Int       @default(1)
+  name          String
   email         String    @unique
-  users         users[]   @relation
+  password      String
+  accountId     Int
+  account       Account?  @relation("AccountUsers", fields: [accountId], references: [id])
   createdAt     DateTime  @default(now())
   updatedAt     DateTime? @updatedAt
   deletedAt     DateTime?
@@ -27,14 +48,57 @@ model accounts {
   deletedUserId Int?
 }
 
-model users {
+model Product {
   id            Int       @id @default(autoincrement())
-  status        Int
+  status        Int       @default(1)
+  code          String    @unique
   name          String    @unique
-  email         String    @unique
-  password      String
+  categoryId    Int?
+  devices       Device[]  @relation
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime? @updatedAt
+  deletedAt     DateTime?
+  createdUserId Int?
+  updatedUserId Int?
+  deletedUserId Int?
+}
+
+model Location {
+  id            Int       @id @default(autoincrement())
+  name          String    @unique
+  parentId      Int?
   accountId     Int
-  account       accounts  @relation(fields: [accountId], references: [id])
+  account       Account   @relation("AccountLocations", fields: [accountId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime? @updatedAt
+  deletedAt     DateTime?
+  createdUserId Int?
+  updatedUserId Int?
+  deletedUserId Int?
+}
+
+model Device {
+  id            Int       @id @default(autoincrement())
+  status        Int       @default(1)
+  code          String    @unique
+  productId     Int       @unique
+  customerId    Int?      @unique
+  supplierId    Int?      @unique
+  product       Product   @relation(fields: [productId], references: [id])
+  customer      Account?  @relation("DeviceCustomer", fields: [customerId], references: [id])
+  supplier      Account?  @relation("DeviceSupplier", fields: [supplierId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime? @updatedAt
+  deletedAt     DateTime?
+  createdUserId Int?
+  updatedUserId Int?
+  deletedUserId Int?
+}
+
+model DeviceMessage {
+  id            Int       @id @default(autoincrement())
+  code          String    @unique
+  message       String
   createdAt     DateTime  @default(now())
   updatedAt     DateTime? @updatedAt
   deletedAt     DateTime?

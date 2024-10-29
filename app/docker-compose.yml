@@ -1,7 +1,8 @@
 services:
-  smoke-app:
+  app:
     build: .
     container_name: smoke-app
+    restart: always
     ports:
       - "3001:3001"
     environment:
@@ -14,8 +15,9 @@ services:
       - smoke-network
 
   db:
-    image: postgres:17
-    container_name: smoke-postgres-db
+    image: postgres:17-alpine
+    container_name: smoke-db
+    restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres

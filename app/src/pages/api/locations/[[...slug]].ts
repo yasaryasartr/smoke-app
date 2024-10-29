@@ -24,7 +24,7 @@ export default async function handler(
       .json({ error: "Invalid authorization format. Use Bearer token." });
   }
 
-  const moduleName = "Account";
+  const moduleName = "Location";
   const types: any = await getColumnTypes(prisma, moduleName);
   const userId: number = 1; //todo: check
 
