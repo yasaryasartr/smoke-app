@@ -1,8 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
 import qs from "qs";
+import jwt from "jsonwebtoken";
 import { getColumnTypes } from "@/helpers";
 
+const JWT_SECRET = process.env.JWT_SECRET as string;
 const prisma = new PrismaClient({ log: ["error", "warn", "info"] });
 
 export default async function handler(
@@ -11,6 +13,7 @@ export default async function handler(
 ) {
   req.query = qs.parse(req.query);
 
+  let userId: number = 0;
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
@@ -19,16 +22,22 @@ export default async function handler(
 
   const token = authHeader.split(" ")[1];
   if (!authHeader.startsWith("Bearer ") || !token) {
-    return res
-      .status(401)
-      .json({ error: "Invalid authorization format. Use Bearer token." });
+    return res.status(401).json({ error: "Token missing" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    if (decoded.userId) {
+      userId = decoded.userId;
+    }
+  } catch (error) {
+    return res.status(403).json({ message: "Invalid token" });
   }
 
   const moduleName = "Location";
   const types: any = await getColumnTypes(prisma, moduleName);
-  const userId: number = 1; //todo: check
-
-  const id: number | null = Number(req.query?.id);
+  const id: number | null = req.query?.slug ? Number(req.query?.slug[0]) : null;
 
   req.meta = { userId, moduleName, types, id };
 
