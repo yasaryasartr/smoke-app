@@ -26,7 +26,7 @@ export default async function handler(
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded:any = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
     if (decoded.userId) {
       userId = decoded.userId;
