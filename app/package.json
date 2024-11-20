@@ -1,14 +1,14 @@
 {
   "name": "smoke-app",
-  "version": "0.24.1118",
+  "version": "0.24.1120",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack --port 3001 -H 0.0.0.0",
     "build": "next build",
     "start": "next start -H 0.0.0.0",
     "lint": "next lint",
-    "docker-build": "docker-compose -p smoke up --build -d",
-    "docker-up": "docker-compose -p smoke up -d"
+    "docker-build": "docker compose -p smoke up --build -d",
+    "docker-up": "docker compose -p smoke up -d"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -23,7 +23,7 @@
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.7",
-    "@types/node": "^22.9.0",
+    "@types/node": "^22.9.1",
     "@types/qs": "^6.9.17",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
