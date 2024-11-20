@@ -3,6 +3,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
+RUN echo "yes" | npx prisma migrate dev --name init
 RUN npm run build
 EXPOSE 3001 5432
 CMD ["npm", "run", "start"]
