@@ -25,6 +25,8 @@ services:
       - .:/app
     networks:
       - smoke-network
+    command: >
+      sh -c "npx prisma migrate dev --name init && npm run start"
 networks:
   smoke-network:
     driver: bridge
