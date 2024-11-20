@@ -1,19 +1,4 @@
 services:
-  app:
-    build: .
-    container_name: smoke-app
-    restart: always
-    ports:
-      - "3001:3001"
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/smokeapp
-    depends_on:
-      - db
-    volumes:
-      - .:/app
-    networks:
-      - smoke-network
-
   db:
     image: postgres:17-alpine
     container_name: smoke-db
@@ -28,9 +13,21 @@ services:
       - smoke-pgdata:/var/lib/postgresql/data
     networks:
       - smoke-network
-
+  app:
+    build: .
+    container_name: smoke-app
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/smokeapp
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+    networks:
+      - smoke-network
 networks:
   smoke-network:
-
 volumes:
   smoke-pgdata:
