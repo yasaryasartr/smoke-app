@@ -13,8 +13,6 @@ services:
       - .:/app
     networks:
       - smoke-network
-    # command: >
-    #   sh -c "npx prisma migrate dev --name init --skip-seed && npm run start"
   db:
     image: postgres:17-alpine
     container_name: smoke-db
