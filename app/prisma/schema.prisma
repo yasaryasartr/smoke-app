@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id            Int       @id @default(autoincrement())
+  status        Int       @default(1)
+  name          String    @unique
+  email         String?
+  supplierId    Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime?
+  deletedAt     DateTime?
+  createdUserId Int?
+  updatedUserId Int?
+  deletedUserId Int?
+
+  users             User[]
+  locations         Location[]
+  devicesAsCustomer Device[]   @relation("CustomerAccount")
+  devicesAsSupplier Device[]   @relation("SupplierAccount")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  status        Int       @default(1)
+  name          String
+  email         String    @unique
+  password      String
+  accountId     Int
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime?
+  deletedAt     DateTime?
+  createdUserId Int?
+  updatedUserId Int?
+  deletedUserId Int?
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+}
+
+model Product {
+  id            Int       @id @default(autoincrement())
+  status        Int       @default(1)
+  code          String    @unique
+  name          String    @unique
+  categoryId    Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime?
+  deletedAt     DateTime?
+  createdUserId Int?
+  updatedUserId Int?
+  deletedUserId Int?
+
+  devices Device[]
+}
+
+model Location {
+  id            Int       @id @default(autoincrement())
+  name          String    @unique
+  parentId      Int?
+  accountId     Int
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime?
+  deletedAt     DateTime?
+  createdUserId Int?
+  updatedUserId Int?
+  deletedUserId Int?
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+}
+
+model Device {
+  id            Int       @id @default(autoincrement())
+  status        Int       @default(1)
+  code          String    @unique
+  productId     Int
+  customerId    Int?
+  supplierId    Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime?
+  deletedAt     DateTime?
+  createdUserId Int?
+  updatedUserId Int?
+  deletedUserId Int?
+
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  customer Account? @relation("CustomerAccount", fields: [customerId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  supplier Account? @relation("SupplierAccount", fields: [supplierId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+}
+
+model DeviceMessage {
+  id            Int       @id @default(autoincrement())
+  code          String
+  message       String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime?
+  deletedAt     DateTime?
+  createdUserId Int?
+  updatedUserId Int?
+  deletedUserId Int?
+}

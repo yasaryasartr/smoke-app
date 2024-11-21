@@ -1,11 +1,11 @@
 {
   "name": "smoke-app",
-  "version": "0.24.1120",
+  "version": "0.24.1121",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack --port 3001 -H 0.0.0.0",
     "build": "next build",
-    "start": "next start -H 0.0.0.0",
+    "start": "next start --port 3001 -H 0.0.0.0",
     "lint": "next lint",
     "docker-build": "docker compose -p smoke up --build -d",
     "docker-up": "docker compose -p smoke up -d"

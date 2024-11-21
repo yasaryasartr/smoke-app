@@ -1,16 +1,4 @@
 services:
-  db:
-    image: postgres:17-alpine
-    container_name: smoke-db
-    restart: always
-    env_file:
-      - .env
-    ports:
-      - "5433:5432"
-    volumes:
-      - smoke-pgdata:/var/lib/postgresql/data
-    networks:
-      - smoke-network
   app:
     build: .
     container_name: smoke-app
@@ -25,8 +13,20 @@ services:
       - .:/app
     networks:
       - smoke-network
-    command: >
-      sh -c "npx prisma migrate dev --name init && npm run start"
+    # command: >
+    #   sh -c "npx prisma migrate dev --name init --skip-seed && npm run start"
+  db:
+    image: postgres:17-alpine
+    container_name: smoke-db
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "5433:5432"
+    volumes:
+      - smoke-pgdata:/var/lib/postgresql/data
+    networks:
+      - smoke-network
 networks:
   smoke-network:
     driver: bridge

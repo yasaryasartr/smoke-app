@@ -14,7 +14,7 @@ export default async function handler(
   req.query = qs.parse(req.query);
 
   let userId: number = 0;
-  const authHeader = req.headers.authorization;
+  const authHeader: string = req.headers.authorization;
 
   if (!authHeader) {
     return res.status(401).json({ error: "Authorization header is missing" });

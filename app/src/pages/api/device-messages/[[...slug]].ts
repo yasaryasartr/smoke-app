@@ -14,7 +14,7 @@ export default async function handler(
   req.query = qs.parse(req.query);
 
   let userId: number = 0;
-  const authHeader = req.headers.authorization;
+  const authHeader: string = req.headers.authorization;
 
   if (!authHeader) {
     return res.status(401).json({ error: "Authorization header is missing" });
@@ -119,6 +119,17 @@ const create = async function handler(
   req: NextApiRequest | any,
   res: NextApiResponse
 ) {
+
+  if (!req.body.code) {
+    res.status(401).json({ error: "code required" });
+    return;
+  }
+
+  if (!req.body.message) {
+    res.status(401).json({ error: "message required" });
+    return;
+  }
+
   try {
     let data: any = {
       createdAt: new Date(),

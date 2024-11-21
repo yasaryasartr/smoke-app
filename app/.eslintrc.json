@@ -3,11 +3,10 @@
     "next/core-web-vitals",
     "next/typescript"
   ],
-  "prefer-const": [
-    "error",
-    {
-      "destructuring": "any",
-      "ignoreReadBeforeAssign": false
-    }
-  ]
+  "rules": {
+    "prefer-const": "off",
+    "consistent-return": "off",
+    "@typescript-eslint/no-unused-vars": "off",
+    "@typescript-eslint/no-explicit-any": "off"
+  }
 }

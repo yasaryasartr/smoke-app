@@ -9,11 +9,11 @@ const JWT_SECRET = process.env.JWT_SECRET as string;
 const JWT_TOKEN_EXPIRE = process.env.JWT_TOKEN_EXPIRE as string;
 const prisma = new PrismaClient({ log: ["error", "warn", "info"] });
 
-async function hashPassword(password: string): Promise<string> {
-  const saltRounds = 10;
-  const hashedPassword = await bcrypt.hash(password, saltRounds);
-  return hashedPassword;
-}
+// async function hashPassword(password: string): Promise<string> {
+//   const saltRounds = 10;
+//   const hashedPassword = await bcrypt.hash(password, saltRounds);
+//   return hashedPassword;
+// }
 
 //demo password: $2a$10$tFq/p.cfAOlWP72sD0zwiO8Obi.C2Rj5z/vGMtFIbF9U0hv0E6QW2
 
@@ -27,7 +27,7 @@ export default async function handler(
   let userId: number = 0;
 
   if (!isLogin) {
-    const authHeader = req.headers.authorization;
+    const authHeader: string = req.headers.authorization;
 
     if (!authHeader) {
       return res.status(401).json({ error: "Authorization header is missing" });
@@ -39,7 +39,7 @@ export default async function handler(
     }
 
     try {
-      const decoded:any = jwt.verify(token, JWT_SECRET);
+      const decoded: any = jwt.verify(token, JWT_SECRET);
       req.user = decoded;
       if (decoded.userId) {
         userId = decoded.userId;
@@ -268,6 +268,15 @@ const login = async function handler(
   req: NextApiRequest | any,
   res: NextApiResponse
 ) {
+  if (!req.body.email) {
+    res.status(401).json({ error: "email required" });
+    return;
+  }
+  if (!req.body.password) {
+    res.status(401).json({ error: "password required" });
+    return;
+  }
+
   try {
     let where: any = { deletedAt: null, email: req.body.email };
     const data = await (prisma as any)[req.meta.moduleName].findFirst({
@@ -283,19 +292,23 @@ const login = async function handler(
       res.status(401).json({ error: "Not active" });
       return;
     }
+    let isPasswordCorrect = false;
 
-    const isPasswordCorrect = await bcrypt.compare(
-      req.body.password,
-      data.password
-    );
+    try {
+      isPasswordCorrect = await bcrypt.compare(
+        req.body.password,
+        data.password
+      );
+    } catch (error) {
+      console.error("bcrypt.compare", error);
+    }
+
     if (!isPasswordCorrect) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
-
-    const token = await jwt.sign({ userId: data.id }, JWT_SECRET, {
+    const token = jwt.sign({ userId: data.id }, JWT_SECRET, {
       expiresIn: JWT_TOKEN_EXPIRE,
     });
-
     data.token = token;
 
     delete data.password;

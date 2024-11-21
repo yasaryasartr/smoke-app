@@ -3,7 +3,7 @@ export async function getColumnTypes(prisma: any, tableName: string) {
   try {
     const sql = `SELECT col.column_name,col.data_type FROM information_schema.columns AS col WHERE col.table_schema = 'public' AND col.table_name = '${tableName}'`;
 
-    const result: any[] = await prisma.$queryRaw`${sql}`;
+    const result: any[] = await prisma.$queryRawUnsafe(sql);
 
     columnTypes = result?.reduce(
       (
