@@ -1,6 +1,6 @@
 {
   "name": "smoke-app",
-  "version": "0.24.1121",
+  "version": "0.24.1123",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack --port 3001 -H 0.0.0.0",

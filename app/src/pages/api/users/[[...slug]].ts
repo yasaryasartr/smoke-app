@@ -236,15 +236,21 @@ const destroy = async function handler(
   res: NextApiResponse
 ) {
   try {
-    let where: any = { id: req.meta.id };
+    let where: any = { deletedAt: null, id: req.meta.id };
+    let data = await (prisma as any)[req.meta.moduleName].findFirst({
+      where,
+    });
 
-    let data: any = {
-      deletedAt: new Date(),
-      deletedUserId: req.meta.userId,
-    };
+    if (!data) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
 
     const newData = await (prisma as any)[req.meta.moduleName].update({
-      data,
+      data: {
+        deletedAt: new Date(),
+        deletedUserId: req.meta.userId,
+      },
       where,
     });
 

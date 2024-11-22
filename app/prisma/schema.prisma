@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -88,9 +89,10 @@ model Device {
   updatedUserId Int?
   deletedUserId Int?
 
-  product  Product  @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  customer Account? @relation("CustomerAccount", fields: [customerId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  supplier Account? @relation("SupplierAccount", fields: [supplierId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  product       Product         @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  customer      Account?        @relation("CustomerAccount", fields: [customerId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  supplier      Account?        @relation("SupplierAccount", fields: [supplierId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  DeviceMessage DeviceMessage[]
 }
 
 model DeviceMessage {
@@ -103,4 +105,5 @@ model DeviceMessage {
   createdUserId Int?
   updatedUserId Int?
   deletedUserId Int?
+  device        Device    @relation(fields: [code], references: [code], onDelete: Restrict, onUpdate: Cascade)
 }
