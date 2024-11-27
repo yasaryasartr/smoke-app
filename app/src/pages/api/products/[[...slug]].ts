@@ -99,9 +99,8 @@ const get = async function handler(
   res: NextApiResponse
 ) {
   try {
-    let where: any = { deletedAt: null, id: req.meta.id };
     const data = await (prisma as any)[req.meta.moduleName].findFirst({
-      where,
+      where: { deletedAt: null, id: req.meta.id },
     });
 
     if (!data) {
@@ -168,8 +167,6 @@ const create = async function handler(
       data,
     });
 
-    //409 conflict
-
     if (!newData) {
       res.status(400).json({ error: "Not created" });
       return;
@@ -213,8 +210,6 @@ const update = async function handler(
       data,
       where,
     });
-
-    //409 conflict
 
     if (!newData) {
       res.status(400).json({ error: "Not updated" });

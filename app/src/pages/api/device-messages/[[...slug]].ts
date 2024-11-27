@@ -99,9 +99,8 @@ const get = async function handler(
   res: NextApiResponse
 ) {
   try {
-    let where: any = { deletedAt: null, id: req.meta.id };
     const data = await (prisma as any)[req.meta.moduleName].findFirst({
-      where,
+      where: { deletedAt: null, id: req.meta.id },
     });
 
     if (!data) {
@@ -159,8 +158,6 @@ const create = async function handler(
       data,
     });
 
-    //409 conflict
-
     if (!newData) {
       res.status(400).json({ error: "Not created" });
       return;
@@ -181,6 +178,34 @@ const update = async function handler(
   req: NextApiRequest | any,
   res: NextApiResponse
 ) {
+  if (!req.body.code) {
+    res.status(401).json({ error: "code required" });
+    return;
+  }
+
+  if (!req.body.message) {
+    res.status(401).json({ error: "message required" });
+    return;
+  }
+
+  let data = await (prisma as any)["Device"].findFirst({
+    where: { deletedAt: null, code: req.body.code },
+  });
+
+  if (!data) {
+    res.status(404).json({ error: `Not found code: ${req.body.code}` });
+    return;
+  }
+
+  data = await (prisma as any)[req.meta.moduleName].findFirst({
+    where: { deletedAt: null, id: req.meta.id },
+  });
+
+  if (!data) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+
   try {
     let where: any = { id: req.meta.id };
 
@@ -204,8 +229,6 @@ const update = async function handler(
       data,
       where,
     });
-
-    //409 conflict
 
     if (!newData) {
       res.status(400).json({ error: "Not updated" });

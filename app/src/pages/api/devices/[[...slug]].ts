@@ -99,9 +99,8 @@ const get = async function handler(
   res: NextApiResponse
 ) {
   try {
-    let where: any = { deletedAt: null, id: req.meta.id };
     const data = await (prisma as any)[req.meta.moduleName].findFirst({
-      where,
+      where: { deletedAt: null, id: req.meta.id },
     });
 
     if (!data) {
@@ -138,7 +137,7 @@ const create = async function handler(
     return;
   }
 
-  data = await (prisma as any)[req.meta.moduleName].findFirst({
+  data = await (prisma as any)["Product"].findFirst({
     where: { deletedAt: null, productId: req.body.productId * 1 },
   });
 
@@ -169,8 +168,6 @@ const create = async function handler(
     const newData = await (prisma as any)[req.meta.moduleName].create({
       data,
     });
-
-    //409 conflict
 
     if (!newData) {
       res.status(400).json({ error: "Not created" });
@@ -218,7 +215,7 @@ const update = async function handler(
   }
 
   if (req.body.productId) {
-    data = await (prisma as any)[req.meta.moduleName].findFirst({
+    data = await (prisma as any)["Product"].findFirst({
       where: { deletedAt: null, productId: req.body.productId * 1 },
     });
 
@@ -253,8 +250,6 @@ const update = async function handler(
       data,
       where,
     });
-
-    //409 conflict
 
     if (!newData) {
       res.status(400).json({ error: "Not updated" });
