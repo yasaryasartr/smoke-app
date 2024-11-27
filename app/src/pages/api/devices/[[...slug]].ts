@@ -119,6 +119,36 @@ const create = async function handler(
   req: NextApiRequest | any,
   res: NextApiResponse
 ) {
+  if (!req.body.code) {
+    res.status(401).json({ error: "code required" });
+    return;
+  }
+
+  if (!req.body.productId) {
+    res.status(401).json({ error: "productId required" });
+    return;
+  }
+
+  let data = await (prisma as any)[req.meta.moduleName].findFirst({
+    where: { deletedAt: null, code: req.body.code },
+  });
+
+  if (data) {
+    res.status(409).json({ error: `Already exists code: ${req.body.code}` });
+    return;
+  }
+
+  data = await (prisma as any)[req.meta.moduleName].findFirst({
+    where: { deletedAt: null, productId: req.body.productId * 1 },
+  });
+
+  if (!data) {
+    res
+      .status(404)
+      .json({ error: `Not found productId: ${req.body.productId}` });
+    return;
+  }
+
   try {
     let data: any = {
       createdAt: new Date(),
@@ -162,6 +192,44 @@ const update = async function handler(
   req: NextApiRequest | any,
   res: NextApiResponse
 ) {
+  if (!req.body.code && !req.body.productId) {
+    res.status(401).json({ error: "code or productId required" });
+    return;
+  }
+
+  let data = await (prisma as any)[req.meta.moduleName].findFirst({
+    where: { deletedAt: null, id: req.meta.id },
+  });
+
+  if (!data) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+
+  if (req.body.code) {
+    data = await (prisma as any)[req.meta.moduleName].findFirst({
+      where: { deletedAt: null, code: req.body.code, NOT: { id: req.meta.id } },
+    });
+
+    if (data) {
+      res.status(409).json({ error: `Already exists code: ${req.body.code}` });
+      return;
+    }
+  }
+
+  if (req.body.productId) {
+    data = await (prisma as any)[req.meta.moduleName].findFirst({
+      where: { deletedAt: null, productId: req.body.productId * 1 },
+    });
+
+    if (!data) {
+      res
+        .status(404)
+        .json({ error: `Not found productId: ${req.body.productId}` });
+      return;
+    }
+  }
+
   try {
     let where: any = { id: req.meta.id };
 

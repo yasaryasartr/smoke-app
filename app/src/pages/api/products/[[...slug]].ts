@@ -129,23 +129,21 @@ const create = async function handler(
     return;
   }
 
-  let where: any = { deletedAt: null, code: req.body.code };
   let data = await (prisma as any)[req.meta.moduleName].findFirst({
-    where,
+    where: { deletedAt: null, code: req.body.code },
   });
 
   if (data) {
-    res.status(404).json({ error: `Already exists code: ${req.body.code}` });
+    res.status(409).json({ error: `Already exists code: ${req.body.code}` });
     return;
   }
 
-  where = { deletedAt: null, name: req.body.name };
   data = await (prisma as any)[req.meta.moduleName].findFirst({
-    where,
+    where: { deletedAt: null, name: req.body.name },
   });
 
   if (data) {
-    res.status(404).json({ error: `Already exists name: ${req.body.name}` });
+    res.status(409).json({ error: `Already exists name: ${req.body.name}` });
     return;
   }
 

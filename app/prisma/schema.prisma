@@ -62,7 +62,7 @@ model Product {
 
 model Location {
   id            Int       @id @default(autoincrement())
-  name          String    @unique
+  name          String
   parentId      Int?
   accountId     Int
   createdAt     DateTime  @default(now())

@@ -119,6 +119,27 @@ const create = async function handler(
   req: NextApiRequest | any,
   res: NextApiResponse
 ) {
+  if (!req.body.name) {
+    res.status(401).json({ error: "name required" });
+    return;
+  }
+
+  if (!req.body.accountId) {
+    res.status(401).json({ error: "accountId required" });
+    return;
+  }
+
+  const data = await (prisma as any)["Account"].findFirst({
+    where: { deletedAt: null, id: req.body.accountId * 1 },
+  });
+
+  if (!data) {
+    res
+      .status(404)
+      .json({ error: `Not found accountId: ${req.body.accountId}` });
+    return;
+  }
+
   try {
     let data: any = {
       createdAt: new Date(),
@@ -162,6 +183,28 @@ const update = async function handler(
   req: NextApiRequest | any,
   res: NextApiResponse
 ) {
+  let data = await (prisma as any)[req.meta.moduleName].findFirst({
+    where: { deletedAt: null, id: req.meta.id },
+  });
+
+  if (!data) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+
+  if (req.body.accountId) {
+    const data = await (prisma as any)["Account"].findFirst({
+      where: { deletedAt: null, id: req.body.accountId * 1 },
+    });
+
+    if (!data) {
+      res
+        .status(404)
+        .json({ error: `Not found accountId: ${req.body.accountId}` });
+      return;
+    }
+  }
+
   try {
     let where: any = { id: req.meta.id };
 

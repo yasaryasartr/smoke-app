@@ -119,6 +119,20 @@ const create = async function handler(
   req: NextApiRequest | any,
   res: NextApiResponse
 ) {
+  if (!req.body.name) {
+    res.status(401).json({ error: "name required" });
+    return;
+  }
+
+  let data = await (prisma as any)[req.meta.moduleName].findFirst({
+    where: { deletedAt: null, name: req.body.name },
+  });
+
+  if (data) {
+    res.status(409).json({ error: `Already exists name: ${req.body.name}` });
+    return;
+  }
+
   try {
     let data: any = {
       createdAt: new Date(),
@@ -162,6 +176,26 @@ const update = async function handler(
   req: NextApiRequest | any,
   res: NextApiResponse
 ) {
+  let data = await (prisma as any)[req.meta.moduleName].findFirst({
+    where: { deletedAt: null, id: req.meta.id },
+  });
+
+  if (!data) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+
+  if (req.body.name) {
+    data = await (prisma as any)[req.meta.moduleName].findFirst({
+      where: { deletedAt: null, name: req.body.name, NOT: { id: req.meta.id } },
+    });
+
+    if (data) {
+      res.status(409).json({ error: `Already exists name: ${req.body.name}` });
+      return;
+    }
+  }
+
   try {
     let where: any = { id: req.meta.id };
 
@@ -185,8 +219,6 @@ const update = async function handler(
       data,
       where,
     });
-
-    //409 conflict
 
     if (!newData) {
       res.status(400).json({ error: "Not updated" });

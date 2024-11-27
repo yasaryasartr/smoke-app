@@ -26,7 +26,7 @@ export default async function handler(
   }
 
   try {
-    const decoded:any = jwt.verify(token, JWT_SECRET);
+    const decoded: any = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
     if (decoded.userId) {
       userId = decoded.userId;
@@ -119,7 +119,6 @@ const create = async function handler(
   req: NextApiRequest | any,
   res: NextApiResponse
 ) {
-
   if (!req.body.code) {
     res.status(401).json({ error: "code required" });
     return;
@@ -130,9 +129,8 @@ const create = async function handler(
     return;
   }
 
-  let where: any = { deletedAt: null, code: req.body.code };
-  const data = await (prisma as any)[req.meta.moduleName].findFirst({
-    where,
+  const data = await (prisma as any)["Device"].findFirst({
+    where: { deletedAt: null, code: req.body.code },
   });
 
   if (!data) {
