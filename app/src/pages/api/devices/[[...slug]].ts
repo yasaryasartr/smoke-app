@@ -138,7 +138,7 @@ const create = async function handler(
   }
 
   data = await (prisma as any)["Product"].findFirst({
-    where: { deletedAt: null, productId: req.body.productId * 1 },
+    where: { deletedAt: null, id: req.body.productId * 1 },
   });
 
   if (!data) {
@@ -216,7 +216,7 @@ const update = async function handler(
 
   if (req.body.productId) {
     data = await (prisma as any)["Product"].findFirst({
-      where: { deletedAt: null, productId: req.body.productId * 1 },
+      where: { deletedAt: null, id: req.body.productId * 1 },
     });
 
     if (!data) {
