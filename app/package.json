@@ -11,10 +11,11 @@
     "docker-up": "docker compose -p smoke up -d"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0",
+    "@prisma/client": "^6.5.0",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
     "next": "^15.0.3",
+    "nodemailer": "^6.10.0",
     "qs": "^6.13.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

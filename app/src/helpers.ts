@@ -1,3 +1,5 @@
+import nodemailer from "nodemailer";
+
 export async function getColumnTypes(prisma: any, tableName: string) {
   let columnTypes;
   try {
@@ -20,4 +22,42 @@ export async function getColumnTypes(prisma: any, tableName: string) {
   }
 
   return columnTypes;
+}
+
+export async function sendMail({
+  to,
+  subject,
+  message,
+}: {
+  to: string;
+  subject: string;
+  message: string;
+}): Promise<{ success: boolean; error?: any }> {
+  try {
+    const mailOptions = {
+      host: process.env.MAIL_HOST,
+      port: process.env.MAIL_PORT,
+      secure: process.env.MAIL_SECURE,
+      auth: {
+        user: process.env.MAIL_USER,
+        pass: process.env.MAIL_PASSWORD,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+    };
+    const transporter = nodemailer.createTransport(mailOptions);
+
+    await transporter.sendMail({
+      from: mailOptions.auth.user,
+      to,
+      subject,
+      html: message,
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("sendMail error:", error);
+    return { success: false, error };
+  }
 }

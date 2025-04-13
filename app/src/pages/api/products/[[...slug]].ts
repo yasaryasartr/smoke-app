@@ -5,12 +5,17 @@ import jwt from "jsonwebtoken";
 import { getColumnTypes } from "@/helpers";
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
-const prisma = new PrismaClient({ log: ["error", "warn", "info"] });
+const prisma = new PrismaClient({ log: ["error", "warn", "info", "query"] });
 
 export default async function handler(
   req: NextApiRequest | any,
   res: NextApiResponse
 ) {
+  if (req.method === "OPTIONS") {
+    res.status(200).end();
+    return;
+  }
+
   req.query = qs.parse(req.query);
 
   let userId: number = 0;
@@ -147,7 +152,13 @@ const create = async function handler(
   }
 
   try {
+    let maxId = await (prisma as any)[req.meta.moduleName].findFirst({
+      select: { id: true },
+      orderBy: { id: "desc" },
+    });
+
     let data: any = {
+      id: (maxId?.id ?? 0) + 1,
       createdAt: new Date(),
       createdUserId: req.meta.userId,
     };

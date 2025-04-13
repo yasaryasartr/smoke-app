@@ -3,17 +3,17 @@ import { PrismaClient } from "@prisma/client";
 import qs from "qs";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { getColumnTypes } from "@/helpers";
+import { getColumnTypes, sendMail } from "@/helpers";
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
 const JWT_TOKEN_EXPIRE = process.env.JWT_TOKEN_EXPIRE as string;
-const prisma = new PrismaClient({ log: ["error", "warn", "info"] });
+const prisma = new PrismaClient({ log: ["error", "warn", "info", "query"] });
 
-// async function hashPassword(password: string): Promise<string> {
-//   const saltRounds = 10;
-//   const hashedPassword = await bcrypt.hash(password, saltRounds);
-//   return hashedPassword;
-// }
+async function hashPassword(password: string): Promise<string> {
+  const saltRounds = 10;
+  const hashedPassword = await bcrypt.hash(password, saltRounds);
+  return hashedPassword;
+}
 
 //demo password: $2a$10$tFq/p.cfAOlWP72sD0zwiO8Obi.C2Rj5z/vGMtFIbF9U0hv0E6QW2
 
@@ -21,12 +21,23 @@ export default async function handler(
   req: NextApiRequest | any,
   res: NextApiResponse
 ) {
+  if (req.method === "OPTIONS") {
+    res.status(200).end();
+    return;
+  }
+
   req.query = qs.parse(req.query);
   const isLogin = req.method === "POST" && req.query?.slug == "login";
+  const isForgot = req.method === "POST" && req.query?.slug == "forgot";
+  const isPreRegister =
+    req.method === "POST" && req.query?.slug == "pre-register";
+  const isVerifyRegister =
+    req.method === "POST" && req.query?.slug == "verify-register";
+  const isProfile = req.method === "PUT" && req.query?.slug == "profile";
 
   let userId: number = 0;
 
-  if (!isLogin) {
+  if (!isLogin && !isForgot && !isPreRegister && !isVerifyRegister) {
     const authHeader: string = req.headers.authorization;
 
     if (!authHeader) {
@@ -59,8 +70,16 @@ export default async function handler(
     await get(req, res);
   } else if (req.method === "GET") {
     await index(req, res);
-  } else if (req.method === "POST" && req.query?.slug == "login") {
+  } else if (isLogin) {
     await login(req, res);
+  } else if (isForgot) {
+    await forgot(req, res);
+  } else if (isPreRegister) {
+    await preRegister(req, res);
+  } else if (isVerifyRegister) {
+    await verifyRegister(req, res);
+  } else if (isProfile) {
+    await profile(req, res);
   } else if (req.method === "POST") {
     await create(req, res);
   } else if (req.method === "PUT" && id) {
@@ -86,7 +105,9 @@ const index = async function handler(
         if (type == "integer" || type == "numeric") {
           where.AND.push({ [key]: val * 1 });
         } else {
-          where.AND.push({ [key]: { contains: val, mode: "insensitive" } });
+          where.AND.push({
+            [key]: { contains: val, mode: "insensitive" },
+          });
         }
       });
     }
@@ -138,12 +159,240 @@ const get = async function handler(
   }
 };
 
+const profile = async function handler(
+  req: NextApiRequest | any,
+  res: NextApiResponse
+) {
+  try {
+    if (!req.body.name || !req.body.email) {
+      res.status(400).json({ error: "name and email required" });
+      return;
+    }
+
+    if (!req.user?.userId) {
+      res.status(404).json({ error: "UserId Not found" });
+      return;
+    }
+
+    const user: any = await prisma.user.findFirst({
+      where: { id: req.user.userId },
+    });
+
+    if (!user) {
+      res.status(404).json({ error: "User Not found" });
+      return;
+    }
+
+    const userEmailCheck = await (prisma as any)[req.meta.moduleName].findFirst(
+      {
+        where: { email: req.body.email, NOT: { id: req.user.userId } },
+      }
+    );
+
+    if (userEmailCheck) {
+      res.status(409).json({ error: `Already exists email` });
+      return;
+    }
+
+    //update data
+    let data: any = { name: req.body.name, email: req.body.email };
+
+    if (req.body.password) {
+      data.password = await hashPassword(req.body.password);
+    }
+
+    const updated = await (prisma as any)[req.meta.moduleName].update({
+      where: { id: user.id },
+      data,
+    });
+
+    if (!updated) {
+      res.status(500).json({ error: "not updated" });
+      return;
+    }
+  } catch (error) {
+    res.status(500).json({ error });
+  }
+
+  res.status(200).json({ message: "success" });
+};
+
+const verifyRegister = async function handler(
+  req: NextApiRequest | any,
+  res: NextApiResponse
+) {
+  try {
+    if (!req.body.verificationCode) {
+      res.status(401).json({ error: "verificationCode required" });
+      return;
+    }
+
+    const user = await prisma.user.findFirst({
+      where: { email: req.body.email, status: 0 },
+    });
+
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    if (req.body.verificationCode != user.verificationCode) {
+      res.status(400).json({
+        error: "invalid verification code",
+        field: "verification_code",
+      });
+      return;
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: { status: 1 },
+    });
+
+    if (!updated) {
+      res.status(500).json({ error: "User not updated" });
+    }
+
+    res.status(200).json({ message: "success" });
+  } catch (error) {
+    res.status(500).json({ error });
+  }
+};
+
+const preRegister = async function handler(
+  req: NextApiRequest | any,
+  res: NextApiResponse
+) {
+  let accountId = 0;
+
+  try {
+    if (req.body.registerType == "new") {
+      //accountCheck
+      const accountCheck = await prisma.account.findFirst({
+        where: { name: req.body.accountName },
+      });
+      if (accountCheck) {
+        res
+          .status(409)
+          .json({ error: "Account name exists", field: "account_name" });
+        return;
+      }
+
+      //userCheck
+      const userCheck = await prisma.user.findFirst({
+        where: { email: req.body.email },
+      });
+      if (userCheck) {
+        res
+          .status(409)
+          .json({ error: "User email exists", field: "user_email" });
+        return;
+      }
+
+      let maxId = await prisma.account.findFirst({
+        select: { id: true },
+        orderBy: { id: "desc" },
+      });
+
+      const account = await prisma.account.create({
+        data: {
+          id: (maxId?.id ?? 0) + 1,
+          status: 1,
+          name: req.body.accountName,
+          email: req.body.email,
+        },
+      });
+
+      if (!account) {
+        res.status(400).json({ error: "Accout Not created" });
+        return;
+      }
+
+      accountId = account.id;
+    }
+
+    if (req.body.registerType == "join") {
+      accountId = req.body.accountId * 1;
+
+      //accountCheck
+      const accountCheck = await prisma.account.findFirst({
+        where: { id: accountId },
+      });
+      if (!accountCheck) {
+        res
+          .status(404)
+          .json({ error: "Account id not found", field: "account_id" });
+        return;
+      }
+    }
+
+    const password = await hashPassword(req.body.password);
+
+    const verificationCode = Math.floor(
+      10000000 + Math.random() * 90000000
+    ).toString();
+
+    let maxId = await prisma.user.findFirst({
+      select: { id: true },
+      orderBy: { id: "desc" },
+    });
+
+    const user = await prisma.user.create({
+      data: {
+        id: (maxId?.id ?? 0) + 1,
+        status: 0,
+        name: req.body.name,
+        email: req.body.email,
+        password,
+        accountId: accountId,
+        verificationCode,
+      },
+    });
+
+    if (!user) {
+      res.status(400).json({ error: "User Not created" });
+      return;
+    }
+
+    let sendMailRequest: any = {};
+
+    try {
+      sendMailRequest = await sendMail({
+        to: req.body.email,
+        subject: "Nvimax Doğrulama Kodu",
+        message: `Merhaba, ${req.body.name}<br><br>Kayıt işlemine devam edebilmeniz için,<br>Doğrulama Kodunuz: <b>${verificationCode}</b><br><br>www.nvimax.com`,
+      });
+    } catch (mailError) {}
+
+    if (sendMailRequest.success) {
+      res.status(201).json({ message: "created" });
+    } else {
+      res.status(201).json({
+        message: "created",
+        error: "Email could not be sent",
+        mail_error: sendMailRequest.error,
+      });
+    }
+  } catch (error: any) {
+    if (error.code == "P2002") {
+      res.status(409).json(Object.assign({ error: "Conflict" }, error.meta));
+      return;
+    }
+  }
+};
+
 const create = async function handler(
   req: NextApiRequest | any,
   res: NextApiResponse
 ) {
   try {
+    let maxId = await (prisma as any)[req.meta.moduleName].findFirst({
+      select: { id: true },
+      orderBy: { id: "desc" },
+    });
+
     let data: any = {
+      id: (maxId?.id ?? 0) + 1,
       createdAt: new Date(),
       createdUserId: req.meta.userId,
     };
@@ -271,6 +520,106 @@ const destroy = async function handler(
     }
 
     res.status(500).json({ error });
+  }
+};
+
+const forgot = async function handler(
+  req: NextApiRequest | any,
+  res: NextApiResponse
+) {
+  if (!req.body.email) {
+    res.status(401).json({ error: "email required" });
+    return;
+  }
+
+  let where: any = { deletedAt: null, email: req.body.email };
+  const user = await (prisma as any)[req.meta.moduleName].findFirst({
+    where,
+  });
+
+  if (!user) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+
+  if (req.body.step == "verification") {
+    if (!req.body.verificationCode) {
+      res.status(401).json({ error: "verificationCode required" });
+      return;
+    }
+    if (req.body.verificationCode != user.verificationCode) {
+      res.status(401).json({ error: "verificationCode wrong" });
+      return;
+    }
+
+    res.status(200).json({ message: "verified" });
+    return;
+  }
+
+  if (req.body.step == "reset_password") {
+    if (!req.body.password) {
+      res.status(401).json({ error: "password required" });
+      return;
+    }
+
+    if (!req.body.passwordRepeat) {
+      res.status(401).json({ error: "passwordRepeat required" });
+      return;
+    }
+
+    if (req.body.password != req.body.passwordRepeat) {
+      res.status(401).json({ error: "passwordRepeat wrong" });
+      return;
+    }
+
+    const password = await hashPassword(req.body.password);
+
+    const updated = await (prisma as any)[req.meta.moduleName].update({
+      where: { id: user.id },
+      data: { password, status: 1 },
+    });
+
+    if (!updated) {
+      res.status(500).json({ error: "not reset" });
+      return;
+    }
+
+    res.status(200).json({ message: "password reset" });
+    return;
+  }
+
+  const verificationCode = Math.floor(
+    10000000 + Math.random() * 90000000
+  ).toString();
+
+  const updated = await (prisma as any)[req.meta.moduleName].update({
+    where: { id: user.id },
+    data: { verificationCode },
+  });
+
+  if (!updated) {
+    res.status(500).json({ error: "not updated" });
+    return;
+  }
+
+  let sendMailRequest: any = {};
+
+  try {
+    sendMailRequest = await sendMail({
+      to: user.email,
+      subject: "Nvimax Doğrulama Kodu",
+      message: `Merhaba, ${user.name}<br><br>Parola sıfırlama işlemine devam edebilmeniz için,<br>Doğrulama Kodunuz: <b>${verificationCode}</b><br><br>www.nvimax.com`,
+    });
+  } catch (mailError) {}
+
+  if (sendMailRequest.success) {
+    res.status(200).json({ message: "mail sended" });
+  } else {
+    res.status(200).json({
+      message: "mail sended",
+      error: "Email could not be sent",
+      mail_error: sendMailRequest.error,
+    });
   }
 };
 

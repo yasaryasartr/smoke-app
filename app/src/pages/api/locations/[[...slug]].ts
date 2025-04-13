@@ -5,12 +5,17 @@ import jwt from "jsonwebtoken";
 import { getColumnTypes } from "@/helpers";
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
-const prisma = new PrismaClient({ log: ["error", "warn", "info"] });
+const prisma = new PrismaClient({ log: ["error", "warn", "info", "query"] });
 
 export default async function handler(
   req: NextApiRequest | any,
   res: NextApiResponse
 ) {
+  if (req.method === "OPTIONS") {
+    res.status(200).end();
+    return;
+  }
+
   req.query = qs.parse(req.query);
 
   let userId: number = 0;
@@ -67,7 +72,9 @@ const index = async function handler(
       Object.keys(req.query.filter).forEach((key: string) => {
         let val = req.query.filter[key];
         let type = req.meta.types[key] || null;
-        if (type == "integer" || type == "numeric") {
+        if (val == "null") {
+          where.AND.push({ [key]: null });
+        } else if (type == "integer" || type == "numeric") {
           where.AND.push({ [key]: val * 1 });
         } else {
           where.AND.push({ [key]: { contains: val, mode: "insensitive" } });
@@ -77,16 +84,66 @@ const index = async function handler(
 
     const order = (req.query.order as string) || "id";
     const direction = (req.query.direction as string) || "desc";
+    const children = req.query.children == "true";
+    const include = !children
+      ? {}
+      : {
+          children: {
+            include: {
+              children: {
+                include: {
+                  children: {
+                    include: {
+                      children: {
+                        include: {
+                          children: {
+                            include: {
+                              children: {
+                                include: {
+                                  children: { include: {} },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        };
 
-    const data: any = await (prisma as any)[req.meta.moduleName].findMany({
+    let data: any = await (prisma as any)[req.meta.moduleName].findMany({
       skip: Number(req.query.skip || 0),
       take: Number(req.query.take || 50),
       where,
       orderBy: {
         [order]: direction,
       },
+      include,
     });
+
     const total = await (prisma as any)[req.meta.moduleName].count({ where });
+
+    if (children) {
+      function processLocation(locations: any) {
+        return locations
+          .filter((location: any) => {
+            return !location.deletedAt;
+          })
+          .map((location: any) => ({
+            id: location.id,
+            name: location.name,
+            children: location.children
+              ? processLocation(location.children)
+              : [],
+          }));
+      }
+
+      data = processLocation(data);
+    }
 
     res.status(200).json({ data, total });
   } catch (error) {
@@ -123,12 +180,24 @@ const create = async function handler(
     return;
   }
 
+  const user = await prisma.user.findFirst({
+    where: { id: req.user.userId },
+  });
+
+  if (!user || !user.accountId) {
+    res.status(401).json({ error: "accountId notFound" });
+    return;
+  }
+
+  //for standard user
+  req.body.accountId = user.accountId;
+
   if (!req.body.accountId) {
     res.status(401).json({ error: "accountId required" });
     return;
   }
 
-  const data = await (prisma as any)["Account"].findFirst({
+  let data = await (prisma as any)["Account"].findFirst({
     where: { deletedAt: null, id: req.body.accountId * 1 },
   });
 
@@ -140,7 +209,7 @@ const create = async function handler(
   }
 
   if (req.body.parentId) {
-    const data = await (prisma as any)[req.meta.moduleName].findFirst({
+    data = await (prisma as any)[req.meta.moduleName].findFirst({
       where: { deletedAt: null, id: req.body.parentId * 1 },
     });
 
@@ -152,8 +221,28 @@ const create = async function handler(
     }
   }
 
+  let duplicate = await (prisma as any)[req.meta.moduleName].findFirst({
+    where: {
+      deletedAt: null,
+      accountId: req.body.accountId * 1,
+      parentId: req.body.parentId ? req.body.parentId * 1 : null,
+      name: req.body.name,
+    },
+  });
+
+  if (duplicate?.id) {
+    res.status(409).json({ error: "Conflict" });
+    return;
+  }
+
   try {
+    let maxId = await (prisma as any)[req.meta.moduleName].findFirst({
+      select: { id: true },
+      orderBy: { id: "desc" },
+    });
+
     let data: any = {
+      id: (maxId?.id ?? 0) + 1,
       createdAt: new Date(),
       createdUserId: req.meta.userId,
     };
@@ -202,8 +291,25 @@ const update = async function handler(
     return;
   }
 
+  const user = await prisma.user.findFirst({
+    where: { id: req.user.userId },
+  });
+
+  if (!user || !user.accountId) {
+    res.status(401).json({ error: "accountId notFound" });
+    return;
+  }
+
+  //for standard user
+  req.body.accountId = user.accountId;
+
+  if (!req.body.accountId) {
+    res.status(401).json({ error: "accountId required" });
+    return;
+  }
+
   if (req.body.accountId) {
-    const data = await (prisma as any)["Account"].findFirst({
+    data = await (prisma as any)["Account"].findFirst({
       where: { deletedAt: null, id: req.body.accountId * 1 },
     });
 
@@ -216,7 +322,7 @@ const update = async function handler(
   }
 
   if (req.body.parentId) {
-    const data = await (prisma as any)[req.meta.moduleName].findFirst({
+    data = await (prisma as any)[req.meta.moduleName].findFirst({
       where: { deletedAt: null, id: req.body.parentId * 1 },
     });
 
@@ -226,6 +332,21 @@ const update = async function handler(
         .json({ error: `Not found parentId: ${req.body.parentId}` });
       return;
     }
+  }
+
+  let duplicate = await (prisma as any)[req.meta.moduleName].findFirst({
+    where: {
+      deletedAt: null,
+      accountId: req.body.accountId * 1,
+      parentId: req.body.parentId ? req.body.parentId * 1 : null,
+      name: req.body.name,
+      id: { not: req.meta.id },
+    },
+  });
+
+  if (duplicate?.id) {
+    res.status(409).json({ error: "Conflict" });
+    return;
   }
 
   try {

@@ -9,39 +9,51 @@ datasource db {
 }
 
 model Account {
-  id            Int       @id @default(autoincrement())
-  status        Int       @default(1)
-  name          String    @unique
-  email         String?
-  supplierId    Int?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime?
-  deletedAt     DateTime?
-  createdUserId Int?
-  updatedUserId Int?
-  deletedUserId Int?
-
-  users             User[]
-  locations         Location[]
+  id                Int        @id @default(autoincrement())
+  status            Int        @default(1)
+  name              String     @unique
+  email             String?
+  supplierId        Int?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime?
+  deletedAt         DateTime?
+  createdUserId     Int?
+  updatedUserId     Int?
+  deletedUserId     Int?
   devicesAsCustomer Device[]   @relation("CustomerAccount")
   devicesAsSupplier Device[]   @relation("SupplierAccount")
+  locations         Location[]
+  users             User[]
 }
 
 model User {
+  id               Int       @id @default(autoincrement())
+  status           Int       @default(1)
+  name             String
+  email            String    @unique
+  password         String
+  accountId        Int
+  verificationCode String?   @db.VarChar(10)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime?
+  deletedAt        DateTime?
+  createdUserId    Int?
+  updatedUserId    Int?
+  deletedUserId    Int?
+  account          Account   @relation(fields: [accountId], references: [id])
+}
+
+model Category {
   id            Int       @id @default(autoincrement())
-  status        Int       @default(1)
-  name          String
-  email         String    @unique
-  password      String
-  accountId     Int
+  code          String    @unique
+  name          String    @unique
   createdAt     DateTime  @default(now())
   updatedAt     DateTime?
   deletedAt     DateTime?
   createdUserId Int?
   updatedUserId Int?
   deletedUserId Int?
-
-  account Account @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  products      Product[]
 }
 
 model Product {
@@ -56,43 +68,51 @@ model Product {
   createdUserId Int?
   updatedUserId Int?
   deletedUserId Int?
-
-  devices Device[]
+  devices       Device[]
+  category      Category? @relation(fields: [categoryId], references: [id], onDelete: Restrict)
 }
 
 model Location {
-  id            Int       @id @default(autoincrement())
+  id            Int        @id @default(autoincrement())
   name          String
   parentId      Int?
   accountId     Int
-  createdAt     DateTime  @default(now())
+  createdAt     DateTime   @default(now())
   updatedAt     DateTime?
   deletedAt     DateTime?
   createdUserId Int?
   updatedUserId Int?
   deletedUserId Int?
-
-  account Account @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  device        Device[]
+  account       Account    @relation(fields: [accountId], references: [id])
+  parent        Location?  @relation("LocationChildren", fields: [parentId], references: [id])
+  children      Location[] @relation("LocationChildren")
 }
 
 model Device {
-  id            Int       @id @default(autoincrement())
-  status        Int       @default(1)
-  code          String    @unique
+  id            Int             @id @default(autoincrement())
+  status        Int             @default(1)
+  code          String          @unique
+  parentId      Int?
   productId     Int
+  locationId    Int
   customerId    Int?
   supplierId    Int?
-  createdAt     DateTime  @default(now())
+  createdAt     DateTime        @default(now())
   updatedAt     DateTime?
   deletedAt     DateTime?
   createdUserId Int?
   updatedUserId Int?
   deletedUserId Int?
-
-  product       Product         @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  customer      Account?        @relation("CustomerAccount", fields: [customerId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  supplier      Account?        @relation("SupplierAccount", fields: [supplierId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  DeviceMessage DeviceMessage[]
+  name          String?
+  signal        Int?
+  battery       Int?
+  lastActivity  DateTime?
+  customer      Account?        @relation("CustomerAccount", fields: [customerId], references: [id])
+  location      Location        @relation(fields: [locationId], references: [id])
+  product       Product         @relation(fields: [productId], references: [id])
+  supplier      Account?        @relation("SupplierAccount", fields: [supplierId], references: [id])
+  deviceMessage DeviceMessage[]
 }
 
 model DeviceMessage {
@@ -105,5 +125,5 @@ model DeviceMessage {
   createdUserId Int?
   updatedUserId Int?
   deletedUserId Int?
-  device        Device    @relation(fields: [code], references: [code], onDelete: Restrict, onUpdate: Cascade)
+  device        Device    @relation(fields: [code], references: [code])
 }
