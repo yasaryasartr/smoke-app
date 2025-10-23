@@ -21,3 +21,28 @@ SELECT nextval('"Location_id_seq"');
 ```
 
 [http://localhost:3001](http://localhost:3001)
+
+
+************
+
+WebSocket
+
+ws://localhost:8080/deviceCode
+
+Message Types
+
+{
+    "type":"clients"
+}
+
+{
+    "type":"device-messages",
+    "data":[
+        {"code":"100","signal":80,"battery":85,"temperature":30},
+        {"code":"101","signal":83,"battery":90,"temperature":20}
+    ]
+}
+
+{
+    "type":"get-device"
+}

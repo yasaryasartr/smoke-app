@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { TextInput, Button, Alert, StyleSheet, Text } from "react-native";
+import { TextInput, Button, StyleSheet, Text } from "react-native";
 
 import ParallaxScrollView from "@/components/ParallaxScrollView";
 import { ThemedText } from "@/components/ThemedText";

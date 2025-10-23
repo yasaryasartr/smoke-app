@@ -1,75 +1,44 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
-import qs from "qs";
-import jwt from "jsonwebtoken";
-import { getColumnTypes } from "@/helpers";
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { PrismaClient } from '@prisma/client';
+import { apiInit, getColumnTypes } from '@/helpers';
 
-const JWT_SECRET = process.env.JWT_SECRET as string;
-const prisma = new PrismaClient({ log: ["error", "warn", "info", "query"] });
+const prisma = new PrismaClient({ log: ['error', 'warn', 'info', 'query'] });
 
 export default async function handler(
   req: NextApiRequest | any,
   res: NextApiResponse
 ) {
-  if (req.method === "OPTIONS") {
-    res.status(200).end();
-    return;
-  }
+  const result = await apiInit(req, res, prisma);
+  if (!result) return;
 
-  req.query = qs.parse(req.query);
-
-  let userId: number = 0;
-  const authHeader: string = req.headers.authorization;
-
-  if (!authHeader) {
-    return res.status(401).json({ error: "Authorization header is missing" });
-  }
-
-  const token = authHeader.split(" ")[1];
-  if (!authHeader.startsWith("Bearer ") || !token) {
-    return res.status(401).json({ error: "Token missing" });
-  }
-
-  try {
-    const decoded: any = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
-    if (decoded.userId) {
-      userId = decoded.userId;
-    }
-  } catch (error) {
-    return res.status(403).json({ message: "Invalid token" });
-  }
-
-  const moduleName = "Device";
+  const moduleName = 'Device';
   const types: any = await getColumnTypes(prisma, moduleName);
   const id: number | null = req.query?.slug ? Number(req.query?.slug[0]) : null;
 
-  req.meta = { userId, moduleName, types, id };
+  req.meta = { userId: req.user?.id, moduleName, types, id };
 
-  if (req.method === "GET" && id) {
+  if (req.method === 'GET' && id) {
     await get(req, res);
-  } else if (req.method === "GET") {
+  } else if (req.method === 'GET') {
     await index(req, res);
   } else if (
-    req.method === "POST" &&
+    req.method === 'POST' &&
     req.query?.slug &&
-    req.query.slug[0] == "register"
+    req.query.slug[0] == 'register'
   ) {
     await register(req, res);
-  } else if (req.method === "POST") {
+  } else if (req.method === 'POST') {
     await create(req, res);
-  } else if (req.method === "PUT" && id) {
+  } else if (req.method === 'PUT' && id) {
     await update(req, res);
   } else if (
-    req.method === "DELETE" &&
+    req.method === 'DELETE' &&
     req.query?.slug &&
-    req.query.slug[0] == "unregister"
+    req.query.slug[0] == 'unregister'
   ) {
     await unregister(req, res);
-  } else if (req.method === "DELETE" && id) {
+  } else if (req.method === 'DELETE' && id) {
     await destroy(req, res);
-  } else {
-    res.status(405).end(`Not Allowed`);
   }
 }
 
@@ -80,20 +49,20 @@ const index = async function handler(
   try {
     let where: any = { deletedAt: null, AND: [] };
 
-    if (req.query.filter && typeof req.query.filter === "object") {
+    if (req.query.filter && typeof req.query.filter === 'object') {
       Object.keys(req.query.filter).forEach((key: string) => {
         let val = req.query.filter[key];
         let type = req.meta.types[key] || null;
-        if (type == "integer" || type == "numeric") {
+        if (type == 'integer' || type == 'numeric') {
           where.AND.push({ [key]: val * 1 });
         } else {
-          where.AND.push({ [key]: { contains: val, mode: "insensitive" } });
+          where.AND.push({ [key]: { contains: val, mode: 'insensitive' } });
         }
       });
     }
 
-    const order = (req.query.order as string) || "id";
-    const direction = (req.query.direction as string) || "desc";
+    const order = (req.query.order as string) || 'id';
+    const direction = (req.query.direction as string) || 'desc';
 
     const data: any = await (prisma as any)[req.meta.moduleName].findMany({
       skip: Number(req.query.skip || 0),
@@ -155,32 +124,17 @@ const get = async function handler(
     });
 
     if (!data) {
-      res.status(404).json({ error: "Not found" });
+      res.status(404).json({ error: 'Not found' });
       return;
     }
 
     //only users can see their own data
-
-    if (!req.user?.userId) {
-      res.status(404).json({ error: "UserId Not found" });
+    if (!data.customerId || data.customerId != req.user.accountId) {
+      res.status(404).json({ error: 'Not found' });
       return;
     }
 
-    const user = await prisma.user.findFirst({
-      where: { id: req.user.userId },
-    });
-
-    if (!user) {
-      res.status(404).json({ error: "User Not found" });
-      return;
-    }
-
-    if (!data.customerId || data.customerId != user.accountId) {
-      res.status(404).json({ error: "Not found" });
-      return;
-    }
-
-    data.locationPath = "a > b";
+    data.locationPath = 'a > b'; //todo: bu nedir ?? ne için kullanacağız
 
     //----
 
@@ -195,12 +149,12 @@ const create = async function handler(
   res: NextApiResponse
 ) {
   if (!req.body.code) {
-    res.status(401).json({ error: "code required" });
+    res.status(401).json({ error: 'code required' });
     return;
   }
 
   if (!req.body.productId) {
-    res.status(401).json({ error: "productId required" });
+    res.status(401).json({ error: 'productId required' });
     return;
   }
 
@@ -213,7 +167,7 @@ const create = async function handler(
     return;
   }
 
-  data = await (prisma as any)["Product"].findFirst({
+  data = await (prisma as any)['Product'].findFirst({
     where: { deletedAt: null, id: req.body.productId * 1 },
   });
 
@@ -227,7 +181,7 @@ const create = async function handler(
   try {
     let maxId = await (prisma as any)[req.meta.moduleName].findFirst({
       select: { id: true },
-      orderBy: { id: "desc" },
+      orderBy: { id: 'desc' },
     });
 
     let data: any = {
@@ -240,7 +194,7 @@ const create = async function handler(
       Object.keys(req.body).forEach((key: string) => {
         let val = req.body[key];
         let type = req.meta.types[key] || null;
-        if ((type == "integer" || type == "numeric") && !isNaN(val * 1)) {
+        if ((type == 'integer' || type == 'numeric') && !isNaN(val * 1)) {
           val = parseInt(val, 10);
         }
         data[key] = val;
@@ -252,14 +206,14 @@ const create = async function handler(
     });
 
     if (!newData) {
-      res.status(400).json({ error: "Not created" });
+      res.status(400).json({ error: 'Not created' });
       return;
     }
 
     res.status(201).json(newData);
   } catch (error: any) {
-    if (error.code == "P2002") {
-      res.status(409).json(Object.assign({ error: "Conflict" }, error.meta));
+    if (error.code == 'P2002') {
+      res.status(409).json(Object.assign({ error: 'Conflict' }, error.meta));
       return;
     }
 
@@ -276,21 +230,7 @@ const update = async function handler(
   });
 
   if (!data) {
-    res.status(404).json({ error: "Not found" });
-    return;
-  }
-
-  if (!req.user?.userId) {
-    res.status(404).json({ error: "UserId Not found" });
-    return;
-  }
-
-  const user = await prisma.user.findFirst({
-    where: { id: req.user.userId },
-  });
-
-  if (!user) {
-    res.status(404).json({ error: "User Not found" });
+    res.status(404).json({ error: 'Not found' });
     return;
   }
 
@@ -301,6 +241,9 @@ const update = async function handler(
   }
   if (req.body.locationId) {
     body.locationId = req.body.locationId;
+  }
+  if (typeof req.body.status != 'undefined' && req.body.status != null) {
+    body.status = req.body.status;
   }
 
   //only standard user
@@ -318,7 +261,7 @@ const update = async function handler(
   }
 
   if (req.body.productId) {
-    data = await (prisma as any)["Product"].findFirst({
+    data = await (prisma as any)['Product'].findFirst({
       where: { deletedAt: null, id: req.body.productId * 1 },
     });
 
@@ -342,7 +285,7 @@ const update = async function handler(
       Object.keys(req.body).forEach((key: string) => {
         let val = req.body[key];
         let type = req.meta.types[key] || null;
-        if ((type == "integer" || type == "numeric") && !isNaN(val * 1)) {
+        if ((type == 'integer' || type == 'numeric') && !isNaN(val * 1)) {
           val = parseInt(val, 10);
         }
         data[key] = val;
@@ -355,17 +298,17 @@ const update = async function handler(
     });
 
     if (!newData) {
-      res.status(400).json({ error: "Not updated" });
+      res.status(400).json({ error: 'Not updated' });
       return;
     }
 
     res.status(200).json(newData);
   } catch (error: any) {
-    if (error.code == "P2002") {
-      res.status(409).json(Object.assign({ error: "Conflict" }, error.meta));
+    if (error.code == 'P2002') {
+      res.status(409).json(Object.assign({ error: 'Conflict' }, error.meta));
       return;
-    } else if (error.code == "P2025") {
-      res.status(404).json({ error: "Not found" });
+    } else if (error.code == 'P2025') {
+      res.status(404).json({ error: 'Not found' });
       return;
     }
 
@@ -384,7 +327,7 @@ const destroy = async function handler(
     });
 
     if (!data) {
-      res.status(404).json({ error: "Not found" });
+      res.status(404).json({ error: 'Not found' });
       return;
     }
 
@@ -397,14 +340,14 @@ const destroy = async function handler(
     });
 
     if (!newData) {
-      res.status(400).json({ error: "Not deleted" });
+      res.status(400).json({ error: 'Not deleted' });
       return;
     }
 
-    res.status(200).json({ message: "deleted" });
+    res.status(200).json({ message: 'deleted' });
   } catch (error: any) {
-    if (error.code == "P2025") {
-      res.status(404).json({ error: "Not found" });
+    if (error.code == 'P2025') {
+      res.status(404).json({ error: 'Not found' });
       return;
     }
 
@@ -417,24 +360,12 @@ const register = async function handler(
   res: NextApiResponse
 ) {
   if (!req.body.code) {
-    res.status(401).json({ error: "code required" });
+    res.status(401).json({ error: 'code required' });
     return;
   }
 
   if (!req.body.name) {
-    res.status(401).json({ error: "name required" });
-    return;
-  }
-
-  if (!req.user?.userId) {
-    res.status(404).json({ error: "UserId Not found" });
-    return;
-  }
-
-  const user = await prisma.user.findFirst({ where: { id: req.user.userId } });
-
-  if (!user) {
-    res.status(404).json({ error: "User Not found" });
+    res.status(401).json({ error: 'name required' });
     return;
   }
 
@@ -443,7 +374,7 @@ const register = async function handler(
   });
 
   if (!device) {
-    res.status(404).json({ error: "Not found" });
+    res.status(404).json({ error: 'Not found' });
     return;
   }
 
@@ -451,7 +382,7 @@ const register = async function handler(
     data: {
       status: 1,
       locationId: req.body.locationId * 1,
-      customerId: user.accountId,
+      customerId: req.user.accountId,
       code: req.body.code,
       name: req.body.name,
     },
@@ -459,7 +390,7 @@ const register = async function handler(
   });
 
   if (!registered) {
-    res.status(400).json({ error: "Not registered" });
+    res.status(400).json({ error: 'Not registered' });
     return;
   }
 
@@ -471,28 +402,20 @@ const unregister = async function handler(
   res: NextApiResponse
 ) {
   if (!req.body.code) {
-    res.status(401).json({ error: "code required" });
-    return;
-  }
-
-  if (!req.user?.userId) {
-    res.status(404).json({ error: "UserId Not found" });
-    return;
-  }
-
-  const user = await prisma.user.findFirst({ where: { id: req.user.userId } });
-
-  if (!user) {
-    res.status(404).json({ error: "User Not found" });
+    res.status(401).json({ error: 'code required' });
     return;
   }
 
   const device = await (prisma as any)[req.meta.moduleName].findFirst({
-    where: { deletedAt: null, code: req.body.code, customerId: user.accountId },
+    where: {
+      deletedAt: null,
+      code: req.body.code,
+      customerId: req.user.accountId,
+    },
   });
 
   if (!device) {
-    res.status(404).json({ error: "Not found" });
+    res.status(404).json({ error: 'Not found' });
     return;
   }
 
@@ -502,13 +425,13 @@ const unregister = async function handler(
       customerId: null,
       name: null,
     },
-    where: { id: device.id, customerId: user.accountId },
+    where: { id: device.id, customerId: req.user.accountId },
   });
 
   if (!unregistered) {
-    res.status(400).json({ error: "Not unregistered" });
+    res.status(400).json({ error: 'Not unregistered' });
     return;
   }
 
-  res.status(200).json({ message: "unregistered" });
+  res.status(200).json({ message: 'unregistered' });
 };

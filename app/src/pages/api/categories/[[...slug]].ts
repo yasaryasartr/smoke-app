@@ -11,7 +11,14 @@ export default async function handler(
   const result = await apiInit(req, res, prisma);
   if (!result) return;
 
-  const moduleName = 'Location';
+  if (
+    ['POST', 'PUT', 'DELETE'].includes(req.method) &&
+    req.user?.role != 'admin'
+  ) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+
+  const moduleName = 'Category';
   const types: any = await getColumnTypes(prisma, moduleName);
   const id: number | null = req.query?.slug ? Number(req.query?.slug[0]) : null;
 
@@ -41,9 +48,7 @@ const index = async function handler(
       Object.keys(req.query.filter).forEach((key: string) => {
         let val = req.query.filter[key];
         let type = req.meta.types[key] || null;
-        if (val == 'null') {
-          where.AND.push({ [key]: null });
-        } else if (type == 'integer' || type == 'numeric') {
+        if (type == 'integer' || type == 'numeric') {
           where.AND.push({ [key]: val * 1 });
         } else {
           where.AND.push({ [key]: { contains: val, mode: 'insensitive' } });
@@ -53,66 +58,16 @@ const index = async function handler(
 
     const order = (req.query.order as string) || 'id';
     const direction = (req.query.direction as string) || 'desc';
-    const children = req.query.children == 'true';
-    const include = !children
-      ? {}
-      : {
-          children: {
-            include: {
-              children: {
-                include: {
-                  children: {
-                    include: {
-                      children: {
-                        include: {
-                          children: {
-                            include: {
-                              children: {
-                                include: {
-                                  children: { include: {} },
-                                },
-                              },
-                            },
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        };
 
-    let data: any = await (prisma as any)[req.meta.moduleName].findMany({
+    const data: any = await (prisma as any)[req.meta.moduleName].findMany({
       skip: Number(req.query.skip || 0),
       take: Number(req.query.take || 50),
       where,
       orderBy: {
         [order]: direction,
       },
-      include,
     });
-
     const total = await (prisma as any)[req.meta.moduleName].count({ where });
-
-    if (children) {
-      function processLocation(locations: any) {
-        return locations
-          .filter((location: any) => {
-            return !location.deletedAt;
-          })
-          .map((location: any) => ({
-            id: location.id,
-            name: location.name,
-            children: location.children
-              ? processLocation(location.children)
-              : [],
-          }));
-      }
-
-      data = processLocation(data);
-    }
 
     res.status(200).json({ data, total });
   } catch (error) {
@@ -144,60 +99,48 @@ const create = async function handler(
   req: NextApiRequest | any,
   res: NextApiResponse
 ) {
+  if (!req.body.code) {
+    res.status(401).json({ error: 'code required' });
+    return;
+  }
+
   if (!req.body.name) {
     res.status(401).json({ error: 'name required' });
     return;
   }
 
-  if (!req.user || !req.user.accountId) {
-    res.status(401).json({ error: 'accountId notFound' });
-    return;
-  }
-
-  //for standard user
-  req.body.accountId = req.user.accountId;
-
-  if (!req.body.accountId) {
-    res.status(401).json({ error: 'accountId required' });
-    return;
-  }
-
-  let data = await (prisma as any)['Account'].findFirst({
-    where: { deletedAt: null, id: req.body.accountId * 1 },
+  // Check if code already exists
+  let dataByCode = await (prisma as any)[req.meta.moduleName].findFirst({
+    where: { deletedAt: null, code: req.body.code },
   });
 
-  if (!data) {
-    res
-      .status(404)
-      .json({ error: `Not found accountId: ${req.body.accountId}` });
+  if (dataByCode) {
+    res.status(409).json({ error: `Already exists code: ${req.body.code}` });
     return;
   }
 
+  // Check if name already exists
+  let dataByName = await (prisma as any)[req.meta.moduleName].findFirst({
+    where: { deletedAt: null, name: req.body.name },
+  });
+
+  if (dataByName) {
+    res.status(409).json({ error: `Already exists name: ${req.body.name}` });
+    return;
+  }
+
+  // Check if parentId exists
   if (req.body.parentId) {
-    data = await (prisma as any)[req.meta.moduleName].findFirst({
+    let parentData = await (prisma as any)[req.meta.moduleName].findFirst({
       where: { deletedAt: null, id: req.body.parentId * 1 },
     });
 
-    if (!data) {
+    if (!parentData) {
       res
         .status(404)
-        .json({ error: `Not found parentId: ${req.body.parentId}` });
+        .json({ error: `ParentId not found: ${req.body.parentId}` });
       return;
     }
-  }
-
-  let duplicate = await (prisma as any)[req.meta.moduleName].findFirst({
-    where: {
-      deletedAt: null,
-      accountId: req.body.accountId * 1,
-      parentId: req.body.parentId ? req.body.parentId * 1 : null,
-      name: req.body.name,
-    },
-  });
-
-  if (duplicate?.id) {
-    res.status(409).json({ error: 'Conflict' });
-    return;
   }
 
   try {
@@ -256,58 +199,42 @@ const update = async function handler(
     return;
   }
 
-  if (!req.user || !req.user.accountId) {
-    res.status(401).json({ error: 'accountId notFound' });
-    return;
-  }
-
-  //for standard user
-  req.body.accountId = req.user.accountId;
-
-  if (!req.body.accountId) {
-    res.status(401).json({ error: 'accountId required' });
-    return;
-  }
-
-  if (req.body.accountId) {
-    data = await (prisma as any)['Account'].findFirst({
-      where: { deletedAt: null, id: req.body.accountId * 1 },
+  if (req.body.code) {
+    // Check if code already exists
+    let dataByCode = await (prisma as any)[req.meta.moduleName].findFirst({
+      where: { deletedAt: null, code: req.body.code, NOT: { id: req.meta.id } },
     });
 
-    if (!data) {
-      res
-        .status(404)
-        .json({ error: `Not found accountId: ${req.body.accountId}` });
+    if (dataByCode) {
+      res.status(409).json({ error: `Already exists code: ${req.body.code}` });
       return;
     }
   }
 
+  if (req.body.name) {
+    // Check if name already exists
+    let dataByName = await (prisma as any)[req.meta.moduleName].findFirst({
+      where: { deletedAt: null, name: req.body.name, NOT: { id: req.meta.id } },
+    });
+
+    if (dataByName) {
+      res.status(409).json({ error: `Already exists name: ${req.body.name}` });
+      return;
+    }
+  }
+
+  // Check if parentId exists
   if (req.body.parentId) {
-    data = await (prisma as any)[req.meta.moduleName].findFirst({
+    let parentData = await (prisma as any)[req.meta.moduleName].findFirst({
       where: { deletedAt: null, id: req.body.parentId * 1 },
     });
 
-    if (!data) {
+    if (!parentData) {
       res
         .status(404)
-        .json({ error: `Not found parentId: ${req.body.parentId}` });
+        .json({ error: `ParentId not found: ${req.body.parentId}` });
       return;
     }
-  }
-
-  let duplicate = await (prisma as any)[req.meta.moduleName].findFirst({
-    where: {
-      deletedAt: null,
-      accountId: req.body.accountId * 1,
-      parentId: req.body.parentId ? req.body.parentId * 1 : null,
-      name: req.body.name,
-      id: { not: req.meta.id },
-    },
-  });
-
-  if (duplicate?.id) {
-    res.status(409).json({ error: 'Conflict' });
-    return;
   }
 
   try {

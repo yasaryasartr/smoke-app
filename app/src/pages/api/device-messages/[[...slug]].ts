@@ -1,63 +1,32 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
-import qs from "qs";
-import { getColumnTypes } from "@/helpers";
-import jwt from "jsonwebtoken";
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { PrismaClient } from '@prisma/client';
+import { apiInit, getColumnTypes } from '@/helpers';
 
-const JWT_SECRET = process.env.JWT_SECRET as string;
-const prisma = new PrismaClient({ log: ["error", "warn", "info", "query"] });
+const prisma = new PrismaClient({ log: ['error', 'warn', 'info', 'query'] });
 
 export default async function handler(
   req: NextApiRequest | any,
   res: NextApiResponse
 ) {
-  if (req.method === "OPTIONS") {
-    res.status(200).end();
-    return;
-  }
+  const result = await apiInit(req, res, prisma);
+  if (!result) return;
 
-  req.query = qs.parse(req.query);
-
-  let userId: number = 0;
-  const authHeader: string = req.headers.authorization;
-
-  if (!authHeader) {
-    return res.status(401).json({ error: "Authorization header is missing" });
-  }
-
-  const token = authHeader.split(" ")[1];
-  if (!authHeader.startsWith("Bearer ") || !token) {
-    return res.status(401).json({ error: "Token missing" });
-  }
-
-  try {
-    const decoded: any = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
-    if (decoded.userId) {
-      userId = decoded.userId;
-    }
-  } catch (error) {
-    return res.status(403).json({ message: "Invalid token" });
-  }
-
-  const moduleName = "DeviceMessage";
+  const moduleName = 'DeviceMessage';
   const types: any = await getColumnTypes(prisma, moduleName);
   const id: number | null = req.query?.slug ? Number(req.query?.slug[0]) : null;
 
-  req.meta = { userId, moduleName, types, id };
+  req.meta = { userId: req.user?.id, moduleName, types, id };
 
-  if (req.method === "GET" && id) {
+  if (req.method === 'GET' && id) {
     await get(req, res);
-  } else if (req.method === "GET") {
+  } else if (req.method === 'GET') {
     await index(req, res);
-  } else if (req.method === "POST") {
+  } else if (req.method === 'POST') {
     await create(req, res);
-  } else if (req.method === "PUT" && id) {
+  } else if (req.method === 'PUT' && id) {
     await update(req, res);
-  } else if (req.method === "DELETE" && id) {
+  } else if (req.method === 'DELETE' && id) {
     await destroy(req, res);
-  } else {
-    res.status(405).end(`Not Allowed`);
   }
 }
 
@@ -68,20 +37,20 @@ const index = async function handler(
   try {
     let where: any = { deletedAt: null, AND: [] };
 
-    if (req.query.filter && typeof req.query.filter === "object") {
+    if (req.query.filter && typeof req.query.filter === 'object') {
       Object.keys(req.query.filter).forEach((key: string) => {
         let val = req.query.filter[key];
         let type = req.meta.types[key] || null;
-        if (type == "integer" || type == "numeric") {
+        if (type == 'integer' || type == 'numeric') {
           where.AND.push({ [key]: val * 1 });
         } else {
-          where.AND.push({ [key]: { contains: val, mode: "insensitive" } });
+          where.AND.push({ [key]: { contains: val, mode: 'insensitive' } });
         }
       });
     }
 
-    const order = (req.query.order as string) || "id";
-    const direction = (req.query.direction as string) || "desc";
+    const order = (req.query.order as string) || 'id';
+    const direction = (req.query.direction as string) || 'desc';
 
     const data: any = await (prisma as any)[req.meta.moduleName].findMany({
       skip: Number(req.query.skip || 0),
@@ -109,7 +78,7 @@ const get = async function handler(
     });
 
     if (!data) {
-      res.status(404).json({ error: "Not found" });
+      res.status(404).json({ error: 'Not found' });
       return;
     }
 
@@ -124,16 +93,16 @@ const create = async function handler(
   res: NextApiResponse
 ) {
   if (!req.body.code) {
-    res.status(401).json({ error: "code required" });
+    res.status(401).json({ error: 'code required' });
     return;
   }
 
   if (!req.body.message) {
-    res.status(401).json({ error: "message required" });
+    res.status(401).json({ error: 'message required' });
     return;
   }
 
-  let data = await (prisma as any)["Device"].findFirst({
+  let data = await (prisma as any)['Device'].findFirst({
     where: { deletedAt: null, code: req.body.code },
   });
 
@@ -145,7 +114,7 @@ const create = async function handler(
   try {
     let maxId = await (prisma as any)[req.meta.moduleName].findFirst({
       select: { id: true },
-      orderBy: { id: "desc" },
+      orderBy: { id: 'desc' },
     });
 
     let data: any = {
@@ -158,7 +127,7 @@ const create = async function handler(
       Object.keys(req.body).forEach((key: string) => {
         let val = req.body[key];
         let type = req.meta.types[key] || null;
-        if ((type == "integer" || type == "numeric") && !isNaN(val * 1)) {
+        if ((type == 'integer' || type == 'numeric') && !isNaN(val * 1)) {
           val = parseInt(val, 10);
         }
         data[key] = val;
@@ -170,14 +139,14 @@ const create = async function handler(
     });
 
     if (!newData) {
-      res.status(400).json({ error: "Not created" });
+      res.status(400).json({ error: 'Not created' });
       return;
     }
 
     res.status(201).json(newData);
   } catch (error: any) {
-    if (error.code == "P2002") {
-      res.status(409).json(Object.assign({ error: "Conflict" }, error.meta));
+    if (error.code == 'P2002') {
+      res.status(409).json(Object.assign({ error: 'Conflict' }, error.meta));
       return;
     }
 
@@ -190,16 +159,16 @@ const update = async function handler(
   res: NextApiResponse
 ) {
   if (!req.body.code) {
-    res.status(401).json({ error: "code required" });
+    res.status(401).json({ error: 'code required' });
     return;
   }
 
   if (!req.body.message) {
-    res.status(401).json({ error: "message required" });
+    res.status(401).json({ error: 'message required' });
     return;
   }
 
-  let data = await (prisma as any)["Device"].findFirst({
+  let data = await (prisma as any)['Device'].findFirst({
     where: { deletedAt: null, code: req.body.code },
   });
 
@@ -213,7 +182,7 @@ const update = async function handler(
   });
 
   if (!data) {
-    res.status(404).json({ error: "Not found" });
+    res.status(404).json({ error: 'Not found' });
     return;
   }
 
@@ -229,7 +198,7 @@ const update = async function handler(
       Object.keys(req.body).forEach((key: string) => {
         let val = req.body[key];
         let type = req.meta.types[key] || null;
-        if ((type == "integer" || type == "numeric") && !isNaN(val * 1)) {
+        if ((type == 'integer' || type == 'numeric') && !isNaN(val * 1)) {
           val = parseInt(val, 10);
         }
         data[key] = val;
@@ -242,17 +211,17 @@ const update = async function handler(
     });
 
     if (!newData) {
-      res.status(400).json({ error: "Not updated" });
+      res.status(400).json({ error: 'Not updated' });
       return;
     }
 
     res.status(200).json(newData);
   } catch (error: any) {
-    if (error.code == "P2002") {
-      res.status(409).json(Object.assign({ error: "Conflict" }, error.meta));
+    if (error.code == 'P2002') {
+      res.status(409).json(Object.assign({ error: 'Conflict' }, error.meta));
       return;
-    } else if (error.code == "P2025") {
-      res.status(404).json({ error: "Not found" });
+    } else if (error.code == 'P2025') {
+      res.status(404).json({ error: 'Not found' });
       return;
     }
 
@@ -271,7 +240,7 @@ const destroy = async function handler(
     });
 
     if (!data) {
-      res.status(404).json({ error: "Not found" });
+      res.status(404).json({ error: 'Not found' });
       return;
     }
 
@@ -284,14 +253,14 @@ const destroy = async function handler(
     });
 
     if (!newData) {
-      res.status(400).json({ error: "Not deleted" });
+      res.status(400).json({ error: 'Not deleted' });
       return;
     }
 
-    res.status(200).json({ message: "deleted" });
+    res.status(200).json({ message: 'deleted' });
   } catch (error: any) {
-    if (error.code == "P2025") {
-      res.status(404).json({ error: "Not found" });
+    if (error.code == 'P2025') {
+      res.status(404).json({ error: 'Not found' });
       return;
     }
 

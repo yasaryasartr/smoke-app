@@ -1,44 +1,44 @@
-import React, { useState } from "react";
-import { View, StyleSheet, Image } from "react-native";
-import { Input, Button, Card, Text } from "@rneui/themed";
-import { useRouter } from "expo-router";
-import api from "@/api";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useState } from 'react';
+import { View, StyleSheet, Image } from 'react-native';
+import { Input, Button, Card, Text } from '@rneui/themed';
+import { useRouter } from 'expo-router';
+import api from '@/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ForgotScreen() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [verificationCode, setVerificationCode] = useState("");
-  const [password, setPassword] = useState("");
-  const [passwordRepeat, setPasswordRepeat] = useState("");
-  const [error, setError] = useState("");
-  const [step, setStep] = useState("");
+  const [email, setEmail] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordRepeat, setPasswordRepeat] = useState('');
+  const [error, setError] = useState('');
+  const [step, setStep] = useState('');
 
   const handleContinue = async () => {
-    setError("");
+    setError('');
 
-    console.log("handleContinue ");
+    console.log('handleContinue');
 
     if (!email) {
-      setError("Eposta zorunludur!");
+      setError('Eposta zorunludur!');
       return;
     }
 
-    if (step == "verification") {
+    if (step == 'verification') {
       if (!verificationCode) {
-        setError("Doğrulama kodu zorunludur!");
+        setError('Doğrulama kodu zorunludur!');
         return;
       }
     }
 
-    if (step == "reset_password") {
+    if (step == 'reset_password') {
       if (!password) {
-        setError("Yeni Parola zorunludur!");
+        setError('Yeni Parola zorunludur!');
         return;
       }
 
       if (!passwordRepeat) {
-        setError("Parola tekrarı zorunludur!");
+        setError('Parola tekrarı zorunludur!');
         return;
       }
 
@@ -50,13 +50,13 @@ export default function ForgotScreen() {
 
       if (!passwordValid) {
         setError(
-          "Parola en az 8 karakter, küçük büyük harf ve sembol olmalıdır!"
+          'Parola en az 8 karakter, küçük büyük harf ve sembol olmalıdır!'
         );
         return;
       }
 
       if (password !== passwordRepeat) {
-        setError("Parola ve tekrar parola uyuşmuyor!");
+        setError('Parola ve tekrar parola uyuşmuyor!');
         return;
       }
     }
@@ -64,7 +64,7 @@ export default function ForgotScreen() {
     let forgot;
 
     try {
-      forgot = await api.post("/users/forgot", {
+      forgot = await api.post('/users/forgot', {
         step,
         email,
         verificationCode,
@@ -72,34 +72,34 @@ export default function ForgotScreen() {
         passwordRepeat,
       });
 
-      console.log("forgot :>> ", forgot);
+      console.log('forgot :>> ', forgot);
 
       if (forgot.status == 200) {
-        if (step == "" && forgot.data?.message == "mail sended") {
-          setStep("verification");
+        if (step == '' && forgot.data?.message == 'mail sended') {
+          setStep('verification');
         } else if (
-          step == "verification" &&
-          forgot.data?.message == "verified"
+          step == 'verification' &&
+          forgot.data?.message == 'verified'
         ) {
-          setStep("reset_password");
+          setStep('reset_password');
         } else if (
-          step == "reset_password" &&
-          forgot.data?.message == "password reset"
+          step == 'reset_password' &&
+          forgot.data?.message == 'password reset'
         ) {
-          setStep("reset_success");
+          setStep('reset_success');
         } else {
-          setError("İşleminiz Yapılamadı");
+          setError('İşleminiz Yapılamadı');
         }
       }
     } catch (error: any) {
       if (error?.status === 404) {
-        setError("Kayıtlı E-posta Bulunamadı");
+        setError('Kayıtlı E-posta Bulunamadı');
       } else if (error?.status === 500) {
-        setError("Sunucu hatası! Lütfen daha sonra tekrar deneyin.");
-      } else if (error?.response?.data?.error == "verificationCode wrong") {
-        setError("Doğrulama Kodu hatalı");
+        setError('Sunucu hatası! Lütfen daha sonra tekrar deneyin.');
+      } else if (error?.response?.data?.error == 'verificationCode wrong') {
+        setError('Doğrulama Kodu hatalı');
       } else {
-        setError("İşleminiz Yapılamadı");
+        setError('İşleminiz Yapılamadı');
       }
     }
 
@@ -119,44 +119,44 @@ export default function ForgotScreen() {
           Parolamı Unuttum
         </Text>
 
-        {step == "" && (
+        {step == '' && (
           <Input
             placeholder="E-posta"
-            leftIcon={{ type: "material", name: "person" }}
+            leftIcon={{ type: 'material', name: 'person' }}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
           />
         )}
 
-        {step == "verification" && (
+        {step == 'verification' && (
           <>
             <Text>Lütfen mail adresinize gönderilen kodu yazınız</Text>
             <Input
               placeholder="Doğrulama Kodu"
-              leftIcon={{ type: "material", name: "key" }}
+              leftIcon={{ type: 'material', name: 'key' }}
               value={verificationCode}
               onChangeText={setVerificationCode}
             />
           </>
         )}
 
-        {step == "reset_password" && (
+        {step == 'reset_password' && (
           <>
-            <Text style={{ textAlign: "center" }}>Yeni Parolanızı yazınız</Text>
-            <Text style={{ textAlign: "center" }}>
+            <Text style={{ textAlign: 'center' }}>Yeni Parolanızı yazınız</Text>
+            <Text style={{ textAlign: 'center' }}>
               (küçük-büyük harf sembol ve min.8 karakter)
             </Text>
             <Input
               placeholder="Parola"
-              leftIcon={{ type: "material", name: "lock" }}
+              leftIcon={{ type: 'material', name: 'lock' }}
               secureTextEntry
               value={password}
               onChangeText={setPassword}
             />
             <Input
               placeholder="Parola Tekrarı"
-              leftIcon={{ type: "material", name: "lock" }}
+              leftIcon={{ type: 'material', name: 'lock' }}
               secureTextEntry
               value={passwordRepeat}
               onChangeText={setPasswordRepeat}
@@ -164,21 +164,21 @@ export default function ForgotScreen() {
           </>
         )}
 
-        {step == "reset_success" && (
+        {step == 'reset_success' && (
           <>
             <Text
               style={{
                 marginBottom: 20,
                 fontSize: 20,
-                color: "#059b50",
-                textAlign: "center",
+                color: '#059b50',
+                textAlign: 'center',
               }}
             >
               ✅ Parolanız Sıfırlandı
             </Text>
             <Button
               title="Yeni Parola ile Giriş Yap"
-              onPress={() => router.push("/login")}
+              onPress={() => router.push('/login')}
               containerStyle={styles.button}
             />
           </>
@@ -186,7 +186,7 @@ export default function ForgotScreen() {
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        {step != "reset_success" && (
+        {step != 'reset_success' && (
           <>
             <Button
               title="Devam"
@@ -196,7 +196,7 @@ export default function ForgotScreen() {
             <Button
               title="Zaten hesabım var, giriş yap"
               type="clear"
-              onPress={() => router.push("/login")}
+              onPress={() => router.push('/login')}
             />
           </>
         )}
@@ -208,28 +208,28 @@ export default function ForgotScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f4f4f4",
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f4f4f4',
   },
   card: {
-    width: "90%",
+    width: '90%',
     padding: 20,
     borderRadius: 10,
   },
   logo: {
     width: 325,
     height: 180,
-    alignSelf: "center",
+    alignSelf: 'center',
     marginBottom: 20,
   },
   title: {
-    textAlign: "center",
+    textAlign: 'center',
     marginBottom: 20,
   },
   error: {
-    color: "red",
-    textAlign: "center",
+    color: 'red',
+    textAlign: 'center',
     marginBottom: 10,
   },
   button: {

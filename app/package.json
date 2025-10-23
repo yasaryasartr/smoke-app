@@ -1,6 +1,6 @@
 {
   "name": "smoke-app",
-  "version": "0.24.1127c",
+  "version": "0.25.10.23",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack --port 3001 -H 0.0.0.0",
@@ -8,30 +8,38 @@
     "start": "next start --port 3001 -H 0.0.0.0",
     "lint": "next lint",
     "docker-build": "docker compose -p smoke up --build -d",
-    "docker-up": "docker compose -p smoke up -d"
+    "docker-up": "docker compose -p smoke up -d",
+    "ws": "tsx src/ws/server.ts",
+    "ws:watch": "tsx watch src/ws/server.ts"
   },
   "dependencies": {
-    "@prisma/client": "^6.5.0",
-    "bcryptjs": "^2.4.3",
+    "@prisma/client": "^6.17.1",
+    "bcryptjs": "^3.0.2",
     "jsonwebtoken": "^9.0.2",
-    "next": "^15.0.3",
-    "nodemailer": "^6.10.0",
-    "qs": "^6.13.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "next": "^15.5.6",
+    "nodemailer": "^7.0.9",
+    "qs": "^6.14.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/jsonwebtoken": "^9.0.7",
-    "@types/node": "^22.9.1",
-    "@types/qs": "^6.9.17",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
-    "eslint": "^9.15.0",
-    "eslint-config-next": "^15.0.3",
-    "postcss": "^8.4.49",
-    "prisma": "^5.22.0",
-    "tailwindcss": "^3.4.15",
-    "typescript": "^5.6.3"
+    "@tailwindcss/postcss": "^4.1.14",
+    "@types/bcryptjs": "^3.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.8.1",
+    "@types/nodemailer": "^7.0.2",
+    "@types/qs": "^6.14.0",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@types/ws": "^8.18.1",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.38.0",
+    "eslint-config-next": "^15.5.6",
+    "postcss": "^8.5.6",
+    "prisma": "^6.17.1",
+    "tailwindcss": "^3.4.18",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
   }
 }

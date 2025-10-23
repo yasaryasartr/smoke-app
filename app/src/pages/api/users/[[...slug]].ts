@@ -1,13 +1,13 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
-import qs from "qs";
-import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
-import { getColumnTypes, sendMail } from "@/helpers";
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { PrismaClient } from '@prisma/client';
+import qs from 'qs';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import { getColumnTypes, sendMail } from '@/helpers';
 
-const JWT_SECRET = process.env.JWT_SECRET as string;
-const JWT_TOKEN_EXPIRE = process.env.JWT_TOKEN_EXPIRE as string;
-const prisma = new PrismaClient({ log: ["error", "warn", "info", "query"] });
+const JWT_SECRET: any = process.env.JWT_SECRET;
+const JWT_TOKEN_EXPIRE: any = process.env.JWT_TOKEN_EXPIRE;
+const prisma = new PrismaClient({ log: ['error', 'warn', 'info', 'query'] });
 
 async function hashPassword(password: string): Promise<string> {
   const saltRounds = 10;
@@ -21,54 +21,57 @@ export default async function handler(
   req: NextApiRequest | any,
   res: NextApiResponse
 ) {
-  if (req.method === "OPTIONS") {
-    res.status(200).end();
-    return;
+  if (req.method == 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (!['GET', 'POST', 'PUT', 'DELETE'].includes(req.method)) {
+    return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   req.query = qs.parse(req.query);
-  const isLogin = req.method === "POST" && req.query?.slug == "login";
-  const isForgot = req.method === "POST" && req.query?.slug == "forgot";
+  const isLogin = req.method === 'POST' && req.query?.slug == 'login';
+  const isForgot = req.method === 'POST' && req.query?.slug == 'forgot';
   const isPreRegister =
-    req.method === "POST" && req.query?.slug == "pre-register";
+    req.method === 'POST' && req.query?.slug == 'pre-register';
   const isVerifyRegister =
-    req.method === "POST" && req.query?.slug == "verify-register";
-  const isProfile = req.method === "PUT" && req.query?.slug == "profile";
-
-  let userId: number = 0;
+    req.method === 'POST' && req.query?.slug == 'verify-register';
+  const isProfile = req.method === 'PUT' && req.query?.slug == 'profile';
 
   if (!isLogin && !isForgot && !isPreRegister && !isVerifyRegister) {
     const authHeader: string = req.headers.authorization;
 
     if (!authHeader) {
-      return res.status(401).json({ error: "Authorization header is missing" });
+      return res.status(401).json({ error: 'Authorization header is missing' });
     }
 
-    const token = authHeader.split(" ")[1];
-    if (!authHeader.startsWith("Bearer ") || !token) {
-      return res.status(401).json({ error: "Token missing" });
+    const token = authHeader.split(' ')[1];
+    if (!authHeader.startsWith('Bearer ') || !token) {
+      return res.status(401).json({ error: 'Token missing' });
     }
 
     try {
       const decoded: any = jwt.verify(token, JWT_SECRET);
-      req.user = decoded;
+      req.user = null;
       if (decoded.userId) {
-        userId = decoded.userId;
+        req.user = await prisma.user.findFirst({
+          where: { id: decoded.userId },
+        });
       }
     } catch (error) {
-      return res.status(403).json({ message: "Invalid token" });
+      return res.status(403).json({ message: 'Invalid token' });
     }
   }
 
-  const moduleName = "User";
+  const moduleName = 'User';
   const types: any = await getColumnTypes(prisma, moduleName);
   const id: number | null = req.query?.slug ? Number(req.query?.slug[0]) : null;
 
-  req.meta = { userId, moduleName, types, id };
+  req.meta = { userId: req.user?.id, moduleName, types, id };
 
-  if (req.method === "GET" && id) {
+  if (req.method === 'GET' && id) {
     await get(req, res);
-  } else if (req.method === "GET") {
+  } else if (req.method === 'GET') {
     await index(req, res);
   } else if (isLogin) {
     await login(req, res);
@@ -80,14 +83,12 @@ export default async function handler(
     await verifyRegister(req, res);
   } else if (isProfile) {
     await profile(req, res);
-  } else if (req.method === "POST") {
+  } else if (req.method === 'POST') {
     await create(req, res);
-  } else if (req.method === "PUT" && id) {
+  } else if (req.method === 'PUT' && id) {
     await update(req, res);
-  } else if (req.method === "DELETE" && id) {
+  } else if (req.method === 'DELETE' && id) {
     await destroy(req, res);
-  } else {
-    res.status(405).end(`Not Allowed`);
   }
 }
 
@@ -98,22 +99,22 @@ const index = async function handler(
   try {
     let where: any = { deletedAt: null, AND: [] };
 
-    if (req.query.filter && typeof req.query.filter === "object") {
+    if (req.query.filter && typeof req.query.filter === 'object') {
       Object.keys(req.query.filter).forEach((key: string) => {
         let val = req.query.filter[key];
         let type = req.meta.types[key] || null;
-        if (type == "integer" || type == "numeric") {
+        if (type == 'integer' || type == 'numeric') {
           where.AND.push({ [key]: val * 1 });
         } else {
           where.AND.push({
-            [key]: { contains: val, mode: "insensitive" },
+            [key]: { contains: val, mode: 'insensitive' },
           });
         }
       });
     }
 
-    const order = (req.query.order as string) || "id";
-    const direction = (req.query.direction as string) || "desc";
+    const order = (req.query.order as string) || 'id';
+    const direction = (req.query.direction as string) || 'desc';
 
     let data: any = await (prisma as any)[req.meta.moduleName].findMany({
       skip: Number(req.query.skip || 0),
@@ -147,7 +148,7 @@ const get = async function handler(
     });
 
     if (!data) {
-      res.status(404).json({ error: "Not found" });
+      res.status(404).json({ error: 'Not found' });
       return;
     }
 
@@ -165,27 +166,23 @@ const profile = async function handler(
 ) {
   try {
     if (!req.body.name || !req.body.email) {
-      res.status(400).json({ error: "name and email required" });
+      res.status(400).json({ error: 'name and email required' });
       return;
     }
 
     if (!req.user?.userId) {
-      res.status(404).json({ error: "UserId Not found" });
+      res.status(404).json({ error: 'UserId Not found' });
       return;
     }
 
-    const user: any = await prisma.user.findFirst({
-      where: { id: req.user.userId },
-    });
-
-    if (!user) {
-      res.status(404).json({ error: "User Not found" });
+    if (!req.user) {
+      res.status(404).json({ error: 'User Not found' });
       return;
     }
 
     const userEmailCheck = await (prisma as any)[req.meta.moduleName].findFirst(
       {
-        where: { email: req.body.email, NOT: { id: req.user.userId } },
+        where: { email: req.body.email, NOT: { id: req.user.id } },
       }
     );
 
@@ -202,19 +199,19 @@ const profile = async function handler(
     }
 
     const updated = await (prisma as any)[req.meta.moduleName].update({
-      where: { id: user.id },
+      where: { id: req.user.id },
       data,
     });
 
     if (!updated) {
-      res.status(500).json({ error: "not updated" });
+      res.status(500).json({ error: 'not updated' });
       return;
     }
   } catch (error) {
     res.status(500).json({ error });
   }
 
-  res.status(200).json({ message: "success" });
+  res.status(200).json({ message: 'success' });
 };
 
 const verifyRegister = async function handler(
@@ -223,7 +220,7 @@ const verifyRegister = async function handler(
 ) {
   try {
     if (!req.body.verificationCode) {
-      res.status(401).json({ error: "verificationCode required" });
+      res.status(401).json({ error: 'verificationCode required' });
       return;
     }
 
@@ -232,14 +229,14 @@ const verifyRegister = async function handler(
     });
 
     if (!user) {
-      res.status(404).json({ error: "User not found" });
+      res.status(404).json({ error: 'User not found' });
       return;
     }
 
     if (req.body.verificationCode != user.verificationCode) {
       res.status(400).json({
-        error: "invalid verification code",
-        field: "verification_code",
+        error: 'invalid verification code',
+        field: 'verification_code',
       });
       return;
     }
@@ -250,10 +247,10 @@ const verifyRegister = async function handler(
     });
 
     if (!updated) {
-      res.status(500).json({ error: "User not updated" });
+      res.status(500).json({ error: 'User not updated' });
     }
 
-    res.status(200).json({ message: "success" });
+    res.status(200).json({ message: 'success' });
   } catch (error) {
     res.status(500).json({ error });
   }
@@ -266,7 +263,7 @@ const preRegister = async function handler(
   let accountId = 0;
 
   try {
-    if (req.body.registerType == "new") {
+    if (req.body.registerType == 'new') {
       //accountCheck
       const accountCheck = await prisma.account.findFirst({
         where: { name: req.body.accountName },
@@ -274,7 +271,7 @@ const preRegister = async function handler(
       if (accountCheck) {
         res
           .status(409)
-          .json({ error: "Account name exists", field: "account_name" });
+          .json({ error: 'Account name exists', field: 'account_name' });
         return;
       }
 
@@ -285,13 +282,13 @@ const preRegister = async function handler(
       if (userCheck) {
         res
           .status(409)
-          .json({ error: "User email exists", field: "user_email" });
+          .json({ error: 'User email exists', field: 'user_email' });
         return;
       }
 
       let maxId = await prisma.account.findFirst({
         select: { id: true },
-        orderBy: { id: "desc" },
+        orderBy: { id: 'desc' },
       });
 
       const account = await prisma.account.create({
@@ -304,14 +301,14 @@ const preRegister = async function handler(
       });
 
       if (!account) {
-        res.status(400).json({ error: "Accout Not created" });
+        res.status(400).json({ error: 'Accout Not created' });
         return;
       }
 
       accountId = account.id;
     }
 
-    if (req.body.registerType == "join") {
+    if (req.body.registerType == 'join') {
       accountId = req.body.accountId * 1;
 
       //accountCheck
@@ -321,7 +318,7 @@ const preRegister = async function handler(
       if (!accountCheck) {
         res
           .status(404)
-          .json({ error: "Account id not found", field: "account_id" });
+          .json({ error: 'Account id not found', field: 'account_id' });
         return;
       }
     }
@@ -334,7 +331,7 @@ const preRegister = async function handler(
 
     let maxId = await prisma.user.findFirst({
       select: { id: true },
-      orderBy: { id: "desc" },
+      orderBy: { id: 'desc' },
     });
 
     const user = await prisma.user.create({
@@ -350,7 +347,7 @@ const preRegister = async function handler(
     });
 
     if (!user) {
-      res.status(400).json({ error: "User Not created" });
+      res.status(400).json({ error: 'User Not created' });
       return;
     }
 
@@ -359,23 +356,23 @@ const preRegister = async function handler(
     try {
       sendMailRequest = await sendMail({
         to: req.body.email,
-        subject: "Nvimax Doğrulama Kodu",
+        subject: 'Nvimax Doğrulama Kodu',
         message: `Merhaba, ${req.body.name}<br><br>Kayıt işlemine devam edebilmeniz için,<br>Doğrulama Kodunuz: <b>${verificationCode}</b><br><br>www.nvimax.com`,
       });
     } catch (mailError) {}
 
     if (sendMailRequest.success) {
-      res.status(201).json({ message: "created" });
+      res.status(201).json({ message: 'created' });
     } else {
       res.status(201).json({
-        message: "created",
-        error: "Email could not be sent",
+        message: 'created',
+        error: 'Email could not be sent',
         mail_error: sendMailRequest.error,
       });
     }
   } catch (error: any) {
-    if (error.code == "P2002") {
-      res.status(409).json(Object.assign({ error: "Conflict" }, error.meta));
+    if (error.code == 'P2002') {
+      res.status(409).json(Object.assign({ error: 'Conflict' }, error.meta));
       return;
     }
   }
@@ -388,7 +385,7 @@ const create = async function handler(
   try {
     let maxId = await (prisma as any)[req.meta.moduleName].findFirst({
       select: { id: true },
-      orderBy: { id: "desc" },
+      orderBy: { id: 'desc' },
     });
 
     let data: any = {
@@ -401,7 +398,7 @@ const create = async function handler(
       Object.keys(req.body).forEach((key: string) => {
         let val = req.body[key];
         let type = req.meta.types[key] || null;
-        if ((type == "integer" || type == "numeric") && !isNaN(val * 1)) {
+        if ((type == 'integer' || type == 'numeric') && !isNaN(val * 1)) {
           val = parseInt(val, 10);
         }
         data[key] = val;
@@ -413,14 +410,14 @@ const create = async function handler(
     });
 
     if (!newData) {
-      res.status(400).json({ error: "Not created" });
+      res.status(400).json({ error: 'Not created' });
       return;
     }
 
     res.status(201).json(newData);
   } catch (error: any) {
-    if (error.code == "P2002") {
-      res.status(409).json(Object.assign({ error: "Conflict" }, error.meta));
+    if (error.code == 'P2002') {
+      res.status(409).json(Object.assign({ error: 'Conflict' }, error.meta));
       return;
     }
 
@@ -437,7 +434,7 @@ const update = async function handler(
   });
 
   if (!data) {
-    res.status(404).json({ error: "Not found" });
+    res.status(404).json({ error: 'Not found' });
     return;
   }
 
@@ -453,7 +450,7 @@ const update = async function handler(
       Object.keys(req.body).forEach((key: string) => {
         let val = req.body[key];
         let type = req.meta.types[key] || null;
-        if ((type == "integer" || type == "numeric") && !isNaN(val * 1)) {
+        if ((type == 'integer' || type == 'numeric') && !isNaN(val * 1)) {
           val = parseInt(val, 10);
         }
         data[key] = val;
@@ -466,17 +463,17 @@ const update = async function handler(
     });
 
     if (!newData) {
-      res.status(400).json({ error: "Not updated" });
+      res.status(400).json({ error: 'Not updated' });
       return;
     }
 
     res.status(200).json(newData);
   } catch (error: any) {
-    if (error.code == "P2002") {
-      res.status(409).json(Object.assign({ error: "Conflict" }, error.meta));
+    if (error.code == 'P2002') {
+      res.status(409).json(Object.assign({ error: 'Conflict' }, error.meta));
       return;
-    } else if (error.code == "P2025") {
-      res.status(404).json({ error: "Not found" });
+    } else if (error.code == 'P2025') {
+      res.status(404).json({ error: 'Not found' });
       return;
     }
 
@@ -495,7 +492,7 @@ const destroy = async function handler(
     });
 
     if (!data) {
-      res.status(404).json({ error: "Not found" });
+      res.status(404).json({ error: 'Not found' });
       return;
     }
 
@@ -508,14 +505,14 @@ const destroy = async function handler(
     });
 
     if (!newData) {
-      res.status(400).json({ error: "Not deleted" });
+      res.status(400).json({ error: 'Not deleted' });
       return;
     }
 
-    res.status(200).json({ message: "deleted" });
+    res.status(200).json({ message: 'deleted' });
   } catch (error: any) {
-    if (error.code == "P2025") {
-      res.status(404).json({ error: "Not found" });
+    if (error.code == 'P2025') {
+      res.status(404).json({ error: 'Not found' });
       return;
     }
 
@@ -528,7 +525,7 @@ const forgot = async function handler(
   res: NextApiResponse
 ) {
   if (!req.body.email) {
-    res.status(401).json({ error: "email required" });
+    res.status(401).json({ error: 'email required' });
     return;
   }
 
@@ -538,37 +535,37 @@ const forgot = async function handler(
   });
 
   if (!user) {
-    res.status(404).json({ error: "Not found" });
+    res.status(404).json({ error: 'Not found' });
     return;
   }
 
-  if (req.body.step == "verification") {
+  if (req.body.step == 'verification') {
     if (!req.body.verificationCode) {
-      res.status(401).json({ error: "verificationCode required" });
+      res.status(401).json({ error: 'verificationCode required' });
       return;
     }
     if (req.body.verificationCode != user.verificationCode) {
-      res.status(401).json({ error: "verificationCode wrong" });
+      res.status(401).json({ error: 'verificationCode wrong' });
       return;
     }
 
-    res.status(200).json({ message: "verified" });
+    res.status(200).json({ message: 'verified' });
     return;
   }
 
-  if (req.body.step == "reset_password") {
+  if (req.body.step == 'reset_password') {
     if (!req.body.password) {
-      res.status(401).json({ error: "password required" });
+      res.status(401).json({ error: 'password required' });
       return;
     }
 
     if (!req.body.passwordRepeat) {
-      res.status(401).json({ error: "passwordRepeat required" });
+      res.status(401).json({ error: 'passwordRepeat required' });
       return;
     }
 
     if (req.body.password != req.body.passwordRepeat) {
-      res.status(401).json({ error: "passwordRepeat wrong" });
+      res.status(401).json({ error: 'passwordRepeat wrong' });
       return;
     }
 
@@ -580,11 +577,11 @@ const forgot = async function handler(
     });
 
     if (!updated) {
-      res.status(500).json({ error: "not reset" });
+      res.status(500).json({ error: 'not reset' });
       return;
     }
 
-    res.status(200).json({ message: "password reset" });
+    res.status(200).json({ message: 'password reset' });
     return;
   }
 
@@ -598,7 +595,7 @@ const forgot = async function handler(
   });
 
   if (!updated) {
-    res.status(500).json({ error: "not updated" });
+    res.status(500).json({ error: 'not updated' });
     return;
   }
 
@@ -607,17 +604,17 @@ const forgot = async function handler(
   try {
     sendMailRequest = await sendMail({
       to: user.email,
-      subject: "Nvimax Doğrulama Kodu",
+      subject: 'Nvimax Doğrulama Kodu',
       message: `Merhaba, ${user.name}<br><br>Parola sıfırlama işlemine devam edebilmeniz için,<br>Doğrulama Kodunuz: <b>${verificationCode}</b><br><br>www.nvimax.com`,
     });
   } catch (mailError) {}
 
   if (sendMailRequest.success) {
-    res.status(200).json({ message: "mail sended" });
+    res.status(200).json({ message: 'mail sended' });
   } else {
     res.status(200).json({
-      message: "mail sended",
-      error: "Email could not be sent",
+      message: 'mail sended',
+      error: 'Email could not be sent',
       mail_error: sendMailRequest.error,
     });
   }
@@ -628,11 +625,11 @@ const login = async function handler(
   res: NextApiResponse
 ) {
   if (!req.body.email) {
-    res.status(401).json({ error: "email required" });
+    res.status(401).json({ error: 'email required' });
     return;
   }
   if (!req.body.password) {
-    res.status(401).json({ error: "password required" });
+    res.status(401).json({ error: 'password required' });
     return;
   }
 
@@ -643,12 +640,12 @@ const login = async function handler(
     });
 
     if (!data) {
-      res.status(404).json({ error: "Not found" });
+      res.status(404).json({ error: 'Not found' });
       return;
     }
 
     if (data.status != 1) {
-      res.status(401).json({ error: "Not active" });
+      res.status(401).json({ error: 'Not active' });
       return;
     }
     let isPasswordCorrect = false;
@@ -659,11 +656,11 @@ const login = async function handler(
         data.password
       );
     } catch (error) {
-      console.error("bcrypt.compare", error);
+      console.error('bcrypt.compare', error);
     }
 
     if (!isPasswordCorrect) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
     const token = jwt.sign({ userId: data.id }, JWT_SECRET, {
       expiresIn: JWT_TOKEN_EXPIRE,

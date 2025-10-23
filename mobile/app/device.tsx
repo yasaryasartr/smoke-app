@@ -1,20 +1,20 @@
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View } from 'react-native';
 
-import ParallaxScrollView from "@/components/ParallaxScrollView";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
-import { IconSymbol } from "@/components/ui/IconSymbol";
-import { useEffect, useState } from "react";
-import { useUser } from "@/hooks/useUser";
-import api from "@/api";
-import { TreeView } from "@/components/TreeView";
+import ParallaxScrollView from '@/components/ParallaxScrollView';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import { IconSymbol } from '@/components/ui/IconSymbol';
+import { useEffect, useState } from 'react';
+import { useUser } from '@/hooks/useUser';
+import api from '@/api';
+import { TreeView } from '@/components/TreeView';
 
 const getLocations = async () => {
   const user: any = await useUser();
   const params: any = new URLSearchParams();
-  params.append("children", true);
-  params.append("filter[parentId]", null);
-  params.append("filter[accountId]", user?.accountId);
+  params.append('children', true);
+  params.append('filter[parentId]', null);
+  params.append('filter[accountId]', user?.accountId);
 
   let response;
 
@@ -40,7 +40,7 @@ const locationOpenend = async (item: any, setItem: any) => {
         const deviceItems = devices.map((device: any) => ({
           id: device.id,
           title: device.code,
-          type: "device",
+          type: 'device',
         }));
 
         item.children = deviceItems.concat(item.children);
@@ -56,8 +56,8 @@ const getDevices = async (locationId: number) => {
   if (locationId) {
     const user: any = await useUser();
     const params: any = new URLSearchParams();
-    params.append("filter[customerId]", user?.accountId);
-    params.append("filter[locationId]", locationId);
+    params.append('filter[customerId]', user?.accountId);
+    params.append('filter[locationId]', locationId);
 
     let device;
     let devices = [];
@@ -79,7 +79,7 @@ function renameLocations(nodes: any[]): any[] {
     return {
       ...rest,
       title: name,
-      type: "location",
+      type: 'location',
       children: children ? renameLocations(children) : [],
     };
   });
@@ -101,7 +101,7 @@ export default function TabTwoScreen() {
 
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: "#D0D0D0", dark: "#353636" }}
+      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
       headerImage={
         <IconSymbol
           size={310}
@@ -129,13 +129,13 @@ export default function TabTwoScreen() {
 
 const styles = StyleSheet.create({
   headerImage: {
-    color: "#808080",
+    color: '#808080',
     bottom: -90,
     left: -35,
-    position: "absolute",
+    position: 'absolute',
   },
   titleContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 8,
   },
 });

@@ -1,9 +1,9 @@
-import { StyleSheet, View } from "react-native";
-import ParallaxScrollView from "@/components/ParallaxScrollView";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
-import { IconSymbol } from "@/components/ui/IconSymbol";
-import { useEffect, useState } from "react";
+import { StyleSheet, View } from 'react-native';
+import ParallaxScrollView from '@/components/ParallaxScrollView';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import { IconSymbol } from '@/components/ui/IconSymbol';
+import { useEffect, useState } from 'react';
 import {
   Button,
   Switch,
@@ -12,12 +12,12 @@ import {
   Divider,
   Overlay,
   Input,
-} from "@rneui/themed";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
-import Toast from "react-native-toast-message";
-import api from "@/api";
-import LocationView from "@/components/LocationView";
+} from '@rneui/themed';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import Toast from 'react-native-toast-message';
+import api from '@/api';
+import LocationView from '@/components/LocationView';
 
 const getLocationPath = (location: any) => {
   const titles = [];
@@ -28,7 +28,7 @@ const getLocationPath = (location: any) => {
     current = current.parent;
   }
 
-  return titles.reverse().join(" > ");
+  return titles.reverse().join(' > ');
 };
 
 export default function DeviceDetailScreen() {
@@ -36,9 +36,9 @@ export default function DeviceDetailScreen() {
   const { id } = useLocalSearchParams();
 
   const [visibleRename, setVisibleRename] = useState(false);
-  const [name, setName] = useState("");
+  const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [showDelete, setShowDelete] = useState(false);
   const [device, setDevice] = useState<any>({});
   const [unregistered, setUnregistered] = useState(false);
@@ -46,7 +46,7 @@ export default function DeviceDetailScreen() {
   const [sirenEnabled, setSirenEnabled] = useState(false);
   const [dedectorEnabled, setDedectorEnabled] = useState(false);
   const [maxTemperature, setMaxTemperature] = useState(50);
-  const [workingStatus, setWorkingStatus] = useState("");
+  const [workingStatus, setWorkingStatus] = useState('');
   const [location, setLocation] = useState<any>();
   const [locationDialogVisible, setLocationDialogVisible] = useState(false);
 
@@ -56,9 +56,9 @@ export default function DeviceDetailScreen() {
   const changeLocation = async () => {
     if (!location) {
       Toast.show({
-        type: "error",
-        text1: "Konum Seçiniz",
-        position: "bottom",
+        type: 'error',
+        text1: 'Konum Seçiniz',
+        position: 'bottom',
       });
       return;
     }
@@ -73,16 +73,16 @@ export default function DeviceDetailScreen() {
         setDevice(device);
 
         Toast.show({
-          type: "success",
-          text1: "Cihaz Lokasyonu Değiştirildi",
-          position: "bottom",
+          type: 'success',
+          text1: 'Cihaz Lokasyonu Değiştirildi',
+          position: 'bottom',
         });
       }
     } catch (error) {
       Toast.show({
-        type: "error",
-        text1: "Kayıt Yapılamadı",
-        position: "bottom",
+        type: 'error',
+        text1: 'Kayıt Yapılamadı',
+        position: 'bottom',
       });
     }
 
@@ -104,39 +104,51 @@ export default function DeviceDetailScreen() {
         setDevice(device);
 
         Toast.show({
-          type: "success",
-          text1: "Cihaz Adı Değiştirildi",
-          position: "bottom",
+          type: 'success',
+          text1: 'Cihaz Adı Değiştirildi',
+          position: 'bottom',
         });
 
         setVisibleRename(false);
       }
     } catch (error) {
       Toast.show({
-        type: "error",
-        text1: "Kayıt Yapılamadı",
-        position: "bottom",
+        type: 'error',
+        text1: 'Kayıt Yapılamadı',
+        position: 'bottom',
       });
     }
   };
 
   const toggleStatus = async () => {
-    setStatus((prev) => !prev);
+    try {
+      const deviceRequest = await api.put(`/devices/${device.id}`, {
+        status: status ? 0 : 1,
+      });
 
-    Toast.show({
-      type: !status ? "success" : "error",
-      text1: !status ? "Cihaz Etkinleştirildi" : "Cihaz Devredışı",
-      position: "bottom",
-    });
+      setStatus((prev) => !prev);
+
+      Toast.show({
+        type: !status ? 'success' : 'error',
+        text1: !status ? 'Cihaz Etkinleştirildi' : 'Cihaz Devredışı',
+        position: 'bottom',
+      });
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Kayıt Yapılamadı',
+        position: 'bottom',
+      });
+    }
   };
 
   const toggleSiren = async () => {
     setSirenEnabled((prev) => !prev);
 
     Toast.show({
-      type: !sirenEnabled ? "success" : "error",
-      text1: !sirenEnabled ? "Siren Etkinleştirildi" : "Siren Devredışı",
-      position: "bottom",
+      type: !sirenEnabled ? 'success' : 'error',
+      text1: !sirenEnabled ? 'Siren Etkinleştirildi' : 'Siren Devredışı',
+      position: 'bottom',
     });
   };
 
@@ -144,11 +156,11 @@ export default function DeviceDetailScreen() {
     setDedectorEnabled((prev) => !prev);
 
     Toast.show({
-      type: !dedectorEnabled ? "success" : "error",
+      type: !dedectorEnabled ? 'success' : 'error',
       text1: !dedectorEnabled
-        ? "Dedektör Etkinleştirildi"
-        : "Dedektör Devredışı",
-      position: "bottom",
+        ? 'Dedektör Etkinleştirildi'
+        : 'Dedektör Devredışı',
+      position: 'bottom',
     });
   };
 
@@ -158,11 +170,11 @@ export default function DeviceDetailScreen() {
     }
 
     setShowDelete(false);
-    setError("");
+    setError('');
     setLoading(true);
 
     try {
-      const unregister = await api.delete("/devices/unregister", {
+      const unregister = await api.delete('/devices/unregister', {
         data: { code: device.code },
       });
 
@@ -170,11 +182,11 @@ export default function DeviceDetailScreen() {
         setDevice({});
         setUnregistered(true);
       } else {
-        setError("İşleminiz Yapılamadı!");
+        setError('İşleminiz Yapılamadı!');
       }
     } catch (error: any) {
       if (error.status == 404) {
-        setError("Cihaz Bulunamadı!");
+        setError('Cihaz Bulunamadı!');
       }
     }
 
@@ -184,27 +196,27 @@ export default function DeviceDetailScreen() {
   const handleHelp = async () => {
     //todo: burası yapılacak
     Toast.show({
-      type: "info",
-      text1: "Yardım Yapım Aşamasında",
-      position: "bottom",
+      type: 'info',
+      text1: 'Yardım Yapım Aşamasında',
+      position: 'bottom',
     });
   };
 
   const handleTest = async () => {
     //todo: burası yapılacak
     Toast.show({
-      type: "info",
-      text1: "Cihaz test ediliyor...",
-      position: "bottom",
+      type: 'info',
+      text1: 'Cihaz test ediliyor...',
+      position: 'bottom',
     });
   };
 
   const getDevice = async () => {
-    setError("");
+    setError('');
     setLoading(true);
 
     try {
-      const deviceRequest = await api.get("/devices/" + id);
+      const deviceRequest = await api.get('/devices/' + id);
       if (deviceRequest.status == 200) {
         let data = deviceRequest.data;
 
@@ -217,25 +229,25 @@ export default function DeviceDetailScreen() {
 
           setStatus(true);
           if (!data.lastActivity) {
-            setWorkingStatus("Bağlantı Kuruluyor");
+            setWorkingStatus('Bağlantı Kuruluyor');
           } else if (diffInSeconds >= activityTimeout) {
-            setWorkingStatus("Bağlantı Sorunu");
+            setWorkingStatus('Bağlantı Sorunu');
           } else if (data.battery <= lowBattery) {
-            setWorkingStatus("Pil Zayıf");
+            setWorkingStatus('Pil Zayıf');
           } else {
-            setWorkingStatus("Bağlantı Aktif");
+            setWorkingStatus('Bağlantı Aktif');
           }
         } else {
           setStatus(false);
-          setWorkingStatus("Devre Dışı");
+          setWorkingStatus('Devre Dışı');
         }
 
-        if (data.name == null || data.name == "") {
-          data.name = "Tanımsız";
+        if (data.name == null || data.name == '') {
+          data.name = 'Tanımsız';
         }
 
         if (!data.locationId) {
-          data.locationPath = "Tanımsız";
+          data.locationPath = 'Tanımsız';
         } else {
           data.locationPath = getLocationPath(data.location);
         }
@@ -246,16 +258,16 @@ export default function DeviceDetailScreen() {
         if (data.lastActivity) {
           data.lastActivity = new Date(data.lastActivity).toLocaleString();
         } else {
-          data.lastActivity = "Yok";
+          data.lastActivity = 'Yok';
         }
 
         setDevice(data);
       } else {
-        setError("Cihaz Bulunamadı!");
+        setError('Cihaz Bulunamadı!');
       }
     } catch (error: any) {
       if (error.status == 404) {
-        setError("Cihaz Bulunamadı!");
+        setError('Cihaz Bulunamadı!');
       }
     }
 
@@ -268,7 +280,7 @@ export default function DeviceDetailScreen() {
 
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: "#D0D0D0", dark: "#353636" }}
+      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
       headerImage={
         <IconSymbol
           size={310}
@@ -279,7 +291,7 @@ export default function DeviceDetailScreen() {
       }
     >
       {loading ? (
-        <ThemedView style={styles.loadingContainer}>
+        <ThemedView>
           <ThemedText>Yükleniyor...</ThemedText>
         </ThemedView>
       ) : null}
@@ -309,7 +321,7 @@ export default function DeviceDetailScreen() {
                 fontSize: 12,
               }}
               onPress={() => {
-                setName("");
+                setName('');
                 setVisibleRename(true);
               }}
             />
@@ -364,7 +376,7 @@ export default function DeviceDetailScreen() {
             <Switch
               value={status}
               onValueChange={toggleStatus}
-              color={status ? "#28a745" : "#dc3545"}
+              color={status ? '#28a745' : '#dc3545'}
             />
           </ThemedView>
 
@@ -375,7 +387,7 @@ export default function DeviceDetailScreen() {
                 <Switch
                   value={sirenEnabled}
                   onValueChange={toggleSiren}
-                  color={sirenEnabled ? "#28a745" : "#dc3545"}
+                  color={sirenEnabled ? '#28a745' : '#dc3545'}
                 />
               </ThemedView>
               {sirenEnabled && (
@@ -389,12 +401,12 @@ export default function DeviceDetailScreen() {
                     minimumValue={20}
                     maximumValue={60}
                     step={1}
-                    style={{ width: "35%" }}
+                    style={{ width: '35%' }}
                     allowTouchTrack
                     thumbStyle={{
                       height: 20,
                       width: 20,
-                      backgroundColor: "#dc3545",
+                      backgroundColor: '#dc3545',
                     }}
                     trackStyle={{ height: 6 }}
                     minimumTrackTintColor="#dc3545"
@@ -406,7 +418,7 @@ export default function DeviceDetailScreen() {
                 <Switch
                   value={dedectorEnabled}
                   onValueChange={toggleDedector}
-                  color={dedectorEnabled ? "#28a745" : "#dc3545"}
+                  color={dedectorEnabled ? '#28a745' : '#dc3545'}
                 />
               </ThemedView>
             </>
@@ -414,7 +426,7 @@ export default function DeviceDetailScreen() {
 
           <Divider color="#ccc" />
           <ThemedView
-            style={[styles.titleContainer, { justifyContent: "space-between" }]}
+            style={[styles.titleContainer, { justifyContent: 'space-between' }]}
           >
             <Button
               color="success"
@@ -444,7 +456,7 @@ export default function DeviceDetailScreen() {
           title="Cihaz Listesine Dön"
           type="outline"
           onPress={() => {
-            router.push("/devices");
+            router.push('/devices');
           }}
           disabled={loading}
         />
@@ -474,7 +486,7 @@ export default function DeviceDetailScreen() {
               onChangeText={setName}
             />
           </Text>
-          <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
             <Button
               title="İptal"
               type="outline"
@@ -501,15 +513,15 @@ export default function DeviceDetailScreen() {
           setLocationDialogVisible(false);
         }}
         overlayStyle={{
-          width: "90%",
+          width: '90%',
           borderWidth: 1,
-          borderColor: "white",
+          borderColor: 'white',
           borderRadius: 8,
-          backgroundColor: "#242424",
+          backgroundColor: '#242424',
         }}
       >
         <View style={{ padding: 20 }}>
-          <Text style={{ color: "white" }}>Lokasyon Seçin:</Text>
+          <Text style={{ color: 'white' }}>Lokasyon Seçin:</Text>
           <Divider color="#ccc" style={{ marginTop: 10 }} />
 
           <View style={{ marginTop: 10 }}>
@@ -528,8 +540,8 @@ export default function DeviceDetailScreen() {
           <View
             style={{
               marginTop: 30,
-              flexDirection: "row",
-              justifyContent: "flex-end",
+              flexDirection: 'row',
+              justifyContent: 'flex-end',
             }}
           >
             <Button
@@ -555,31 +567,31 @@ export default function DeviceDetailScreen() {
 
 const styles = StyleSheet.create({
   headerImage: {
-    color: "#808080",
+    color: '#808080',
     bottom: -90,
     left: -35,
-    position: "absolute",
+    position: 'absolute',
   },
   titleContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 8,
   },
   label: {
     marginRight: 5,
-    color: "#00bcd4",
+    color: '#00bcd4',
     minWidth: 115,
   },
   input: {
-    color: "#fff",
+    color: '#fff',
   },
   error: {
-    color: "red",
-    textAlign: "center",
+    color: 'red',
+    textAlign: 'center',
     marginBottom: 10,
   },
   success: {
-    color: "lime",
-    textAlign: "center",
+    color: 'lime',
+    textAlign: 'center',
     marginBottom: 10,
   },
 });

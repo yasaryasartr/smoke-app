@@ -1,4 +1,6 @@
-import nodemailer from "nodemailer";
+import nodemailer from 'nodemailer';
+import qs from 'qs';
+import jwt from 'jsonwebtoken';
 
 export async function getColumnTypes(prisma: any, tableName: string) {
   let columnTypes;
@@ -18,7 +20,7 @@ export async function getColumnTypes(prisma: any, tableName: string) {
       {}
     );
   } catch (error) {
-    console.error("Error fetching column types:", error);
+    console.error('Error fetching column types:', error);
   }
 
   return columnTypes;
@@ -34,7 +36,7 @@ export async function sendMail({
   message: string;
 }): Promise<{ success: boolean; error?: any }> {
   try {
-    const mailOptions = {
+    const mailOptions: any = {
       host: process.env.MAIL_HOST,
       port: process.env.MAIL_PORT,
       secure: process.env.MAIL_SECURE,
@@ -57,7 +59,54 @@ export async function sendMail({
 
     return { success: true };
   } catch (error) {
-    console.error("sendMail error:", error);
+    console.error('sendMail error:', error);
     return { success: false, error };
   }
+}
+
+export async function apiInit(req: any, res: any, prisma: any) {
+  const JWT_SECRET = process.env.JWT_SECRET as string;
+
+  if (req.method == 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (!['GET', 'POST', 'PUT', 'DELETE'].includes(req.method)) {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
+  req.query = qs.parse(req.query);
+
+  const authHeader: string = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json({ error: 'Authorization header is missing' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  if (!authHeader.startsWith('Bearer ') || !token) {
+    return res.status(401).json({ error: 'Token missing' });
+  }
+
+  try {
+    const decoded: any = jwt.verify(token, JWT_SECRET);
+    req.user = null;
+    if (decoded.userId) {
+      req.user = await prisma.user.findFirst({
+        where: { id: decoded.userId },
+      });
+
+      if (!req.user) {
+        res.status(404).json({ error: 'User Not found' });
+        return;
+      }
+    } else {
+      res.status(404).json({ error: 'Token UserId Not found' });
+      return;
+    }
+  } catch (error) {
+    return res.status(403).json({ message: 'Invalid token' });
+  }
+
+  return true;
 }

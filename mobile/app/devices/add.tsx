@@ -1,16 +1,16 @@
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
-import ParallaxScrollView from "@/components/ParallaxScrollView";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
-import { IconSymbol } from "@/components/ui/IconSymbol";
-import { useEffect, useState } from "react";
-import api from "@/api";
-import { Button, Input, Text } from "@rneui/themed";
-import { useRouter } from "expo-router";
-import { Divider, Overlay } from "@rneui/base";
-import LocationView from "@/components/LocationView";
-import Toast from "react-native-toast-message";
+import ParallaxScrollView from '@/components/ParallaxScrollView';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import { IconSymbol } from '@/components/ui/IconSymbol';
+import { useEffect, useState } from 'react';
+import api from '@/api';
+import { Button, Input, Text } from '@rneui/themed';
+import { useRouter } from 'expo-router';
+import { Divider, Overlay } from '@rneui/base';
+import LocationView from '@/components/LocationView';
+import Toast from 'react-native-toast-message';
 
 const getLocationPath = (location: any) => {
   const titles = [];
@@ -21,27 +21,27 @@ const getLocationPath = (location: any) => {
     current = current.parent;
   }
 
-  return titles.reverse().join(" > ");
+  return titles.reverse().join(' > ');
 };
 
 export default function AddDeviceScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [locationDialogVisible, setLocationDialogVisible] = useState(false);
 
-  const [name, setName] = useState("");
-  const [code, setCode] = useState("");
+  const [name, setName] = useState('');
+  const [code, setCode] = useState('');
   const [location, setLocation] = useState<any>();
-  const [locationPath, setLocationPath] = useState("");
+  const [locationPath, setLocationPath] = useState('');
   const [locationId, setLocationId] = useState();
 
   const changeLocation = async () => {
     if (!location) {
       Toast.show({
-        type: "error",
-        text1: "Konum Seçiniz",
-        position: "bottom",
+        type: 'error',
+        text1: 'Konum Seçiniz',
+        position: 'bottom',
       });
       return;
     }
@@ -57,17 +57,17 @@ export default function AddDeviceScreen() {
       return;
     }
 
-    setError("");
+    setError('');
 
     if (!name || !code) {
-      setError("Tüm alanlar zorunludur!");
+      setError('Tüm alanlar zorunludur!');
       return;
     }
 
     try {
       setLoading(true);
 
-      const register = await api.post("/devices/register", {
+      const register = await api.post('/devices/register', {
         locationId,
         code,
         name,
@@ -80,16 +80,16 @@ export default function AddDeviceScreen() {
         return;
       }
 
-      setError("Cihaz kaydedilemedi!");
+      setError('Cihaz kaydedilemedi!');
     } catch (error: any) {
       setLoading(false);
 
       if (error.status === 404) {
-        setError("Cihaz Bulunamadı!");
+        setError('Cihaz Bulunamadı!');
         return;
       }
 
-      setError(error?.response?.data?.error || "Bir hata oluştu!");
+      setError(error?.response?.data?.error || 'Bir hata oluştu!');
     }
   };
 
@@ -97,7 +97,7 @@ export default function AddDeviceScreen() {
 
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: "#D0D0D0", dark: "#353636" }}
+      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
       headerImage={
         <IconSymbol
           size={310}
@@ -159,15 +159,15 @@ export default function AddDeviceScreen() {
           setLocationDialogVisible(false);
         }}
         overlayStyle={{
-          width: "90%",
+          width: '90%',
           borderWidth: 1,
-          borderColor: "white",
+          borderColor: 'white',
           borderRadius: 8,
-          backgroundColor: "#242424",
+          backgroundColor: '#242424',
         }}
       >
         <View style={{ padding: 20 }}>
-          <Text style={{ color: "white" }}>Lokasyon Seçin:</Text>
+          <Text style={{ color: 'white' }}>Lokasyon Seçin:</Text>
           <Divider color="#ccc" style={{ marginTop: 10 }} />
 
           <View style={{ marginTop: 10 }}>
@@ -186,8 +186,8 @@ export default function AddDeviceScreen() {
           <View
             style={{
               marginTop: 30,
-              flexDirection: "row",
-              justifyContent: "flex-end",
+              flexDirection: 'row',
+              justifyContent: 'flex-end',
             }}
           >
             <Button
@@ -213,25 +213,25 @@ export default function AddDeviceScreen() {
 
 const styles = StyleSheet.create({
   headerImage: {
-    color: "#808080",
+    color: '#808080',
     bottom: -90,
     left: -35,
-    position: "absolute",
+    position: 'absolute',
   },
   titleContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 8,
   },
   label: {
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginTop: 12,
   },
   input: {
-    color: "#fff",
+    color: '#fff',
   },
   error: {
-    color: "red",
-    textAlign: "center",
+    color: 'red',
+    textAlign: 'center',
     marginBottom: 10,
   },
 });

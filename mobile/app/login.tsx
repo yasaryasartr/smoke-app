@@ -1,39 +1,39 @@
-import React, { useState } from "react";
-import { View, StyleSheet, Image } from "react-native";
-import { Input, Button, Card, Text } from "@rneui/themed";
-import { useRouter } from "expo-router";
-import api from "@/api";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import Logo from "@/assets/images/logo.jpg";
+import React, { useState } from 'react';
+import { View, StyleSheet, Image } from 'react-native';
+import { Input, Button, Card, Text } from '@rneui/themed';
+import { useRouter } from 'expo-router';
+import api from '@/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Logo from '@/assets/images/logo.jpg';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   const handleLogin = async () => {
     if (!email || !password) {
-      setError("Eposta ve parola zorunludur!");
+      setError('Eposta ve parola zorunludur!');
       return;
     }
 
     let login;
 
     try {
-      login = await api.post("/users/login", { email, password });
+      login = await api.post('/users/login', { email, password });
     } catch (error: any) {
       if (error?.status === 500) {
-        setError("Sunucu hatası! Lütfen daha sonra tekrar deneyin.");
+        setError('Sunucu hatası! Lütfen daha sonra tekrar deneyin.');
       }
     }
 
     if (login?.data?.token) {
       const user = login?.data;
-      await AsyncStorage.setItem("user", JSON.stringify(user));
-      router.replace("/(tabs)");
+      await AsyncStorage.setItem('user', JSON.stringify(user));
+      router.replace('/(tabs)');
     } else {
-      setError("Geçersiz eposta veya parola!");
+      setError('Geçersiz eposta veya parola!');
     }
   };
 
@@ -48,7 +48,7 @@ export default function LoginScreen() {
 
         <Input
           placeholder="E-posta"
-          leftIcon={{ type: "material", name: "person" }}
+          leftIcon={{ type: 'material', name: 'person' }}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -56,7 +56,7 @@ export default function LoginScreen() {
 
         <Input
           placeholder="Parola"
-          leftIcon={{ type: "material", name: "lock" }}
+          leftIcon={{ type: 'material', name: 'lock' }}
           secureTextEntry
           value={password}
           onChangeText={setPassword}
@@ -69,16 +69,16 @@ export default function LoginScreen() {
           onPress={handleLogin}
           containerStyle={styles.button}
         />
-        <View style={{ flexDirection: "row", justifyContent: "center" }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
           <Button
             title="Hesap Oluştur"
             type="clear"
-            onPress={() => router.push("/register")}
+            onPress={() => router.push('/register')}
           />
           <Button
             title="Parolamı Unuttum"
             type="clear"
-            onPress={() => router.push("/forgot")}
+            onPress={() => router.push('/forgot')}
           />
         </View>
       </Card>
@@ -89,28 +89,28 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f4f4f4",
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f4f4f4',
   },
   card: {
-    width: "90%",
+    width: '90%',
     padding: 20,
     borderRadius: 10,
   },
   logo: {
     width: 325,
     height: 180,
-    alignSelf: "center",
+    alignSelf: 'center',
     marginBottom: 20,
   },
   title: {
-    textAlign: "center",
+    textAlign: 'center',
     marginBottom: 20,
   },
   error: {
-    color: "red",
-    textAlign: "center",
+    color: 'red',
+    textAlign: 'center',
     marginBottom: 10,
   },
   button: {

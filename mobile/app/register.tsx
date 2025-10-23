@@ -1,49 +1,49 @@
-import React, { useState } from "react";
-import { StyleSheet } from "react-native";
-import { Input, Button, Text, CheckBox } from "@rneui/themed";
+import React, { useState } from 'react';
+import { StyleSheet } from 'react-native';
+import { Input, Button, Text, CheckBox } from '@rneui/themed';
 
-import ParallaxScrollView from "@/components/ParallaxScrollView";
-import { ThemedText } from "@/components/ThemedText";
-import { IconSymbol } from "@/components/ui/IconSymbol";
-import { useRouter } from "expo-router";
-import api from "@/api";
-import { ThemedView } from "@/components/ThemedView";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import ParallaxScrollView from '@/components/ParallaxScrollView';
+import { ThemedText } from '@/components/ThemedText';
+import { IconSymbol } from '@/components/ui/IconSymbol';
+import { useRouter } from 'expo-router';
+import api from '@/api';
+import { ThemedView } from '@/components/ThemedView';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function RegisterScreen() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [step, setStep] = useState(1);
-  const [verificationCode, setVerificationCode] = useState("");
+  const [verificationCode, setVerificationCode] = useState('');
 
-  const [registerType, setRegisterType] = useState<"new" | "join" | null>(null);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [passwordRepeat, setPasswordRepeat] = useState("");
-  const [accountName, setAccountName] = useState("");
-  const [accountId, setAccountId] = useState("");
+  const [registerType, setRegisterType] = useState<'new' | 'join' | null>(null);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordRepeat, setPasswordRepeat] = useState('');
+  const [accountName, setAccountName] = useState('');
+  const [accountId, setAccountId] = useState('');
 
   const autoLogin = async () => {
     let login;
 
     try {
-      login = await api.post("/users/login", { email, password });
+      login = await api.post('/users/login', { email, password });
     } catch (error: any) {
       if (error?.status === 500) {
-        router.push("/login");
+        router.push('/login');
       }
     }
 
     if (login?.data?.token) {
       const user = login?.data;
-      await AsyncStorage.setItem("user", JSON.stringify(user));
-      router.push("/(tabs)");
+      await AsyncStorage.setItem('user', JSON.stringify(user));
+      router.push('/(tabs)');
     } else {
-      router.push("/login");
+      router.push('/login');
     }
   };
 
@@ -52,25 +52,25 @@ export default function RegisterScreen() {
       return;
     }
 
-    setError("");
+    setError('');
 
     if (!registerType || !name || !email || !password || !passwordRepeat) {
-      setError("Tüm alanlar zorunludur!");
+      setError('Tüm alanlar zorunludur!');
       return;
     }
 
-    if (registerType == "new" && !accountName) {
-      setError("Tüm alanlar zorunludur!");
+    if (registerType == 'new' && !accountName) {
+      setError('Tüm alanlar zorunludur!');
       return;
     }
 
-    if (registerType == "join" && !accountId) {
-      setError("Tüm alanlar zorunludur!");
+    if (registerType == 'join' && !accountId) {
+      setError('Tüm alanlar zorunludur!');
       return;
     }
 
     if (step == 2 && !verificationCode) {
-      setError("Doğrulama kodunu yazınız!");
+      setError('Doğrulama kodunu yazınız!');
       return;
     }
 
@@ -82,13 +82,13 @@ export default function RegisterScreen() {
 
     if (!passwordValid) {
       setError(
-        "Parola en az 8 karakter, küçük büyük harf ve sembol olmalıdır!"
+        'Parola en az 8 karakter, küçük büyük harf ve sembol olmalıdır!'
       );
       return;
     }
 
     if (password !== passwordRepeat) {
-      setError("Parola ve tekrar parola uyuşmuyor!");
+      setError('Parola ve tekrar parola uyuşmuyor!');
       return;
     }
 
@@ -108,56 +108,56 @@ export default function RegisterScreen() {
     try {
       setLoading(true);
       if (step == 1) {
-        const preRegister = await api.post("/users/pre-register", params);
+        const preRegister = await api.post('/users/pre-register', params);
 
         setLoading(false);
         if (preRegister.status == 201) {
           setStep(2);
         } else {
-          setError("Kayıt yapılamadı");
+          setError('Kayıt yapılamadı');
         }
       } else if (step == 2) {
-        register = await api.post("/users/verify-register", params);
+        register = await api.post('/users/verify-register', params);
         setLoading(false);
 
-        if (register.status == 200 && register.data?.message == "success") {
+        if (register.status == 200 && register.data?.message == 'success') {
           setSuccess(true);
         }
       }
     } catch (error: any) {
       setLoading(false);
       if (error?.status === 409) {
-        if (error?.response?.data?.field == "account_name") {
-          setError("Benzer hesap adı zaten var!");
-        } else if (error?.response?.data?.field == "user_email") {
-          setError("Benzer email ile kulanıcı zaten var!");
+        if (error?.response?.data?.field == 'account_name') {
+          setError('Benzer hesap adı zaten var!');
+        } else if (error?.response?.data?.field == 'user_email') {
+          setError('Benzer email ile kulanıcı zaten var!');
         } else {
-          setError("Benzer kayıt zaten var!");
+          setError('Benzer kayıt zaten var!');
         }
       }
       if (error?.status === 404) {
-        if (error?.response?.data?.field == "account_id") {
-          setError("Hesap kodu bulunamadı!");
+        if (error?.response?.data?.field == 'account_id') {
+          setError('Hesap kodu bulunamadı!');
         } else {
-          setError("Kayıt bulunamadı!");
+          setError('Kayıt bulunamadı!');
         }
       }
       if (error?.status === 400) {
-        if (error?.response?.data?.field == "verification_code") {
-          setError("Doğrulama kodu hatalı!");
+        if (error?.response?.data?.field == 'verification_code') {
+          setError('Doğrulama kodu hatalı!');
         } else {
-          setError("İşleminiz yapılamadı!");
+          setError('İşleminiz yapılamadı!');
         }
       }
       if (error?.status === 500) {
-        setError("Sunucu hatası! Lütfen daha sonra tekrar deneyin.");
+        setError('Sunucu hatası! Lütfen daha sonra tekrar deneyin.');
       }
     }
   };
 
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: "#D0D0D0", dark: "#353636" }}
+      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
       headerImage={
         <IconSymbol
           size={310}
@@ -181,23 +181,23 @@ export default function RegisterScreen() {
           {step == 1 && (
             <>
               <CheckBox
-                checked={registerType == "new"}
-                onPress={() => setRegisterType("new")}
+                checked={registerType == 'new'}
+                onPress={() => setRegisterType('new')}
                 iconType="material-community"
                 checkedIcon="radiobox-marked"
                 uncheckedIcon="radiobox-blank"
                 title="Yeni Hesap Oluştur"
               />
               <CheckBox
-                checked={registerType == "join"}
-                onPress={() => setRegisterType("join")}
+                checked={registerType == 'join'}
+                onPress={() => setRegisterType('join')}
                 iconType="material-community"
                 checkedIcon="radiobox-marked"
                 uncheckedIcon="radiobox-blank"
                 title="Mevcut Hesaba Katıl"
               />
 
-              {registerType == "new" && (
+              {registerType == 'new' && (
                 <>
                   <ThemedText style={styles.label}>
                     Hesabınıza Bir İsim Verin
@@ -211,7 +211,7 @@ export default function RegisterScreen() {
                 </>
               )}
 
-              {registerType == "join" && (
+              {registerType == 'join' && (
                 <>
                   <ThemedText style={styles.label}>
                     NVIMAX Hesap Kodu
@@ -247,9 +247,9 @@ export default function RegisterScreen() {
 
                   <ThemedView
                     style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      flexWrap: "wrap",
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
                     }}
                   >
                     <ThemedText style={styles.label}>Parola</ThemedText>
@@ -317,7 +317,7 @@ export default function RegisterScreen() {
           <Button
             title="Zaten hesabım var, giriş yap"
             type="clear"
-            onPress={() => router.push("/login")}
+            onPress={() => router.push('/login')}
           />
         </>
       )}
@@ -327,37 +327,37 @@ export default function RegisterScreen() {
 
 const styles = StyleSheet.create({
   headerImage: {
-    color: "#808080",
+    color: '#808080',
     bottom: -90,
     left: -35,
-    position: "absolute",
+    position: 'absolute',
   },
   titleContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 8,
   },
   container: {
     padding: 24,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     flex: 1,
   },
   label: {
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   bigIcon: {
     fontSize: 25,
   },
   error: {
-    color: "red",
-    textAlign: "center",
+    color: 'red',
+    textAlign: 'center',
     marginBottom: 10,
   },
   success: {
-    color: "lime",
-    textAlign: "center",
+    color: 'lime',
+    textAlign: 'center',
     marginBottom: 10,
   },
   input: {
-    color: "#fff",
+    color: '#fff',
   },
 });
