@@ -295,7 +295,7 @@ const update = async function handler(
     }
   }
 
-  let duplicate = await (prisma as any)[req.meta.moduleName].findFirst({
+  let duplicate: any = await (prisma as any)[req.meta.moduleName].findFirst({
     where: {
       deletedAt: null,
       accountId: req.body.accountId * 1,

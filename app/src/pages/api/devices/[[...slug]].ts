@@ -88,7 +88,7 @@ const get = async function handler(
   res: NextApiResponse
 ) {
   try {
-    const data = await (prisma as any)[req.meta.moduleName].findFirst({
+    const data: any = await (prisma as any)[req.meta.moduleName].findFirst({
       where: { deletedAt: null, id: req.meta.id },
       include: {
         location: {
@@ -369,7 +369,7 @@ const register = async function handler(
     return;
   }
 
-  const device = await (prisma as any)[req.meta.moduleName].findFirst({
+  const device: any = await (prisma as any)[req.meta.moduleName].findFirst({
     where: { deletedAt: null, code: req.body.code, customerId: null },
   });
 
@@ -406,7 +406,7 @@ const unregister = async function handler(
     return;
   }
 
-  const device = await (prisma as any)[req.meta.moduleName].findFirst({
+  const device: any = await (prisma as any)[req.meta.moduleName].findFirst({
     where: {
       deletedAt: null,
       code: req.body.code,

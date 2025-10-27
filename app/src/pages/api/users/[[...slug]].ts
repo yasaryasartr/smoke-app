@@ -224,7 +224,7 @@ const verifyRegister = async function handler(
       return;
     }
 
-    const user = await prisma.user.findFirst({
+    const user: any = await prisma.user.findFirst({
       where: { email: req.body.email, status: 0 },
     });
 
