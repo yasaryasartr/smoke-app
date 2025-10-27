@@ -1,20 +1,16 @@
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
-// const apiBaseUrl = "http://45.134.226.137:3001/api";
-const apiBaseUrl = "http://localhost:3001/api";
-// const apiBaseUrl = "http://192.168.1.20:3001/api";
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const api = axios.create({
-  baseURL: apiBaseUrl,
+  baseURL: process.env.EXPO_PUBLIC_API_URL,
   headers: {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   },
 });
 
 api.interceptors.request.use(
-  async (config) => {
-    let user: any = await AsyncStorage.getItem("user");
+  async (config: any) => {
+    let user: any = await AsyncStorage.getItem('user');
     if (user) {
       try {
         user = JSON.parse(user);
@@ -27,15 +23,15 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
+  (error: any) => {
     return Promise.reject(error);
   }
 );
 
 api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error("API Error:", error);
+  (response: any) => response,
+  (error: any) => {
+    console.error('API Error:', error);
     return Promise.reject(error);
   }
 );
