@@ -13,21 +13,17 @@ services:
       - .:/app
     networks:
       - smoke-network
-  # websocket:
-  #   build: .
-  #   container_name: smoke-websocket
-  #   restart: always
-  #   ports:
-  #     - "8080:8080"
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - db
-  #   volumes:
-  #     - .:/app
-  #   command: npm run ws
-  #   networks:
-  #     - smoke-network
+  mqtt:
+    build: .
+    container_name: smoke-mqtt
+    restart: always
+    command: npx node src/mqtt.ts
+    env_file:
+      - .env
+    ports:
+      - "1883:1883"
+    networks:
+      - smoke-network
   db:
     image: postgres:17-alpine
     container_name: smoke-db

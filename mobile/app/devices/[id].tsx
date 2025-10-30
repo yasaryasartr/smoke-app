@@ -150,6 +150,23 @@ export default function DeviceDetailScreen() {
       text1: !sirenEnabled ? 'Siren Etkinleştirildi' : 'Siren Devredışı',
       position: 'bottom',
     });
+
+    try {
+      let settings: any = device.settings ?? {};
+      settings.siren = !sirenEnabled;
+
+      const updated = await api.put(`/devices/${device.id}`, { settings });
+
+      if (updated.status == 200) {
+        //işlem başarılı
+      } else {
+        setError('İşleminiz Yapılamadı!');
+      }
+    } catch (error: any) {
+      if (error.status == 404) {
+        setError('Cihaz Bulunamadı!');
+      }
+    }
   };
 
   const toggleDedector = async () => {

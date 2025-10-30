@@ -3,11 +3,11 @@ import { PrismaClient } from '@prisma/client';
 import qs from 'qs';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { getColumnTypes, sendMail } from '@/helpers';
+import { getColumnTypes, getPrismaClient, sendMail } from '@/helpers';
 
 const JWT_SECRET: any = process.env.JWT_SECRET;
 const JWT_TOKEN_EXPIRE: any = process.env.JWT_TOKEN_EXPIRE;
-const prisma = new PrismaClient({ log: ['error', 'warn', 'info', 'query'] });
+const prisma = getPrismaClient();
 
 async function hashPassword(password: string): Promise<string> {
   const saltRounds = 10;
@@ -34,13 +34,13 @@ export default async function handler(
   }
 
   req.query = qs.parse(req.query);
-  const isLogin = req.method === 'POST' && req.query?.slug == 'login';
-  const isForgot = req.method === 'POST' && req.query?.slug == 'forgot';
+  const isLogin = req.method === 'POST' && req.query?.slug?.toString() == 'login';
+  const isForgot = req.method === 'POST' && req.query?.slug?.toString() == 'forgot';
   const isPreRegister =
-    req.method === 'POST' && req.query?.slug == 'pre-register';
+    req.method === 'POST' && req.query?.slug?.toString() == 'pre-register';
   const isVerifyRegister =
-    req.method === 'POST' && req.query?.slug == 'verify-register';
-  const isProfile = req.method === 'PUT' && req.query?.slug == 'profile';
+    req.method === 'POST' && req.query?.slug?.toString() == 'verify-register';
+  const isProfile = req.method === 'PUT' && req.query?.slug?.toString() == 'profile';
 
   if (!isLogin && !isForgot && !isPreRegister && !isVerifyRegister) {
     const authHeader: string = req.headers.authorization;

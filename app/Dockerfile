@@ -7,6 +7,5 @@ ENV PATH /app/node_modules/.bin:$PATH
 COPY . .
 RUN npx prisma generate
 RUN npm run build
-# EXPOSE 3001 8080 5432
-EXPOSE 3001 5432
+EXPOSE 3001 5432 1883
 CMD ["npm", "run", "start"]

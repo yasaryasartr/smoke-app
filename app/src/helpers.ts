@@ -1,6 +1,8 @@
 import nodemailer from 'nodemailer';
 import qs from 'qs';
 import jwt from 'jsonwebtoken';
+import mqtt from 'mqtt';
+import { PrismaClient } from '@prisma/client';
 
 export async function getColumnTypes(prisma: any, tableName: string) {
   let columnTypes;
@@ -109,4 +111,53 @@ export async function apiInit(req: any, res: any, prisma: any) {
   }
 
   return true;
+}
+
+export function getMqttClient(): any {
+  let client: any = null;
+  let clientId = Math.random().toString(36).slice(2);
+  try {
+    const brokerUrl: any = process.env.MQTT_BROKER_URL;
+    const username: any = process.env.MQTT_USERNAME;
+    const password: any = process.env.MQTT_PASSWORD;
+
+    client = mqtt.connect(brokerUrl, {
+      username,
+      password,
+    });
+
+    client.on('connect', () => {
+      console.log(`✅ MQTT connected ${clientId}`);
+      client.subscribe(`reply/${clientId}`);
+    });
+
+    client.on('error', (error: any) => {
+      console.log(`✅ MQTT error ${clientId} : ${error}`);
+    });
+
+    client.on('message', (topic: any, message: any) => {
+      console.log(`message from server > 📩 ${topic}: ${message.toString()}`);
+    });
+  } catch (error) {
+    console.error('mqttClient error:', error);
+    client = null;
+  }
+
+  return client;
+}
+
+export function getPrismaClient(): any {
+  const prisma = new PrismaClient({ log: ['error', 'warn', 'info', 'query'] });
+
+  prisma.$on('query', (e: any) => {
+    const parsed = JSON.parse(e.params);
+    const sql = parsed.reduce(
+      (q: any, p: any, i: any) => q.replace(`$${i + 1}`, `'${p}'`),
+      e.query
+    );
+
+    console.log('\n🧩 SQL:', sql, '\n\n');
+  });
+
+  return prisma;
 }

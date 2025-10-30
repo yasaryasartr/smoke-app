@@ -1,8 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
-import { apiInit, getColumnTypes } from '@/helpers';
+import {
+  apiInit,
+  getColumnTypes,
+  getMqttClient,
+  getPrismaClient,
+} from '@/helpers';
 
-const prisma = new PrismaClient({ log: ['error', 'warn', 'info', 'query'] });
+const prisma = getPrismaClient();
 
 export default async function handler(
   req: NextApiRequest | any,
@@ -64,7 +68,7 @@ const index = async function handler(
     const order = (req.query.order as string) || 'id';
     const direction = (req.query.direction as string) || 'desc';
 
-    const data: any = await (prisma as any)[req.meta.moduleName].findMany({
+    const data: any = await prisma.device.findMany({
       skip: Number(req.query.skip || 0),
       take: Number(req.query.take || 50),
       where,
@@ -75,7 +79,7 @@ const index = async function handler(
         product: true,
       },
     });
-    const total = await (prisma as any)[req.meta.moduleName].count({ where });
+    const total = await prisma.device.count({ where });
 
     res.status(200).json({ data, total });
   } catch (error) {
@@ -88,7 +92,7 @@ const get = async function handler(
   res: NextApiResponse
 ) {
   try {
-    const data: any = await (prisma as any)[req.meta.moduleName].findFirst({
+    const data: any = await prisma.device.findFirst({
       where: { deletedAt: null, id: req.meta.id },
       include: {
         location: {
@@ -134,8 +138,6 @@ const get = async function handler(
       return;
     }
 
-    data.locationPath = 'a > b'; //todo: bu nedir ?? ne için kullanacağız
-
     //----
 
     res.status(200).json(data);
@@ -158,20 +160,20 @@ const create = async function handler(
     return;
   }
 
-  let data = await (prisma as any)[req.meta.moduleName].findFirst({
+  const device: any = await prisma.device.findFirst({
     where: { deletedAt: null, code: req.body.code },
   });
 
-  if (data) {
+  if (device) {
     res.status(409).json({ error: `Already exists code: ${req.body.code}` });
     return;
   }
 
-  data = await (prisma as any)['Product'].findFirst({
+  const product = await prisma.product.findFirst({
     where: { deletedAt: null, id: req.body.productId * 1 },
   });
 
-  if (!data) {
+  if (!product) {
     res
       .status(404)
       .json({ error: `Not found productId: ${req.body.productId}` });
@@ -179,7 +181,7 @@ const create = async function handler(
   }
 
   try {
-    let maxId = await (prisma as any)[req.meta.moduleName].findFirst({
+    let maxId = await prisma.device.findFirst({
       select: { id: true },
       orderBy: { id: 'desc' },
     });
@@ -201,9 +203,7 @@ const create = async function handler(
       });
     }
 
-    const newData = await (prisma as any)[req.meta.moduleName].create({
-      data,
-    });
+    const newData = await prisma.device.create({ data });
 
     if (!newData) {
       res.status(400).json({ error: 'Not created' });
@@ -225,11 +225,11 @@ const update = async function handler(
   req: NextApiRequest | any,
   res: NextApiResponse
 ) {
-  let data = await (prisma as any)[req.meta.moduleName].findFirst({
+  const device: any = await prisma.device.findFirst({
     where: { deletedAt: null, id: req.meta.id },
   });
 
-  if (!data) {
+  if (!device) {
     res.status(404).json({ error: 'Not found' });
     return;
   }
@@ -250,22 +250,22 @@ const update = async function handler(
   req.body = body;
 
   if (req.body.code) {
-    data = await (prisma as any)[req.meta.moduleName].findFirst({
+    const otherDevice = await prisma.device.findFirst({
       where: { deletedAt: null, code: req.body.code, NOT: { id: req.meta.id } },
     });
 
-    if (data) {
+    if (otherDevice) {
       res.status(409).json({ error: `Already exists code: ${req.body.code}` });
       return;
     }
   }
 
   if (req.body.productId) {
-    data = await (prisma as any)['Product'].findFirst({
+    const product = await prisma.product.findFirst({
       where: { deletedAt: null, id: req.body.productId * 1 },
     });
 
-    if (!data) {
+    if (!product) {
       res
         .status(404)
         .json({ error: `Not found productId: ${req.body.productId}` });
@@ -292,7 +292,7 @@ const update = async function handler(
       });
     }
 
-    const newData = await (prisma as any)[req.meta.moduleName].update({
+    const newData: any = await prisma.device.update({
       data,
       where,
     });
@@ -300,6 +300,23 @@ const update = async function handler(
     if (!newData) {
       res.status(400).json({ error: 'Not updated' });
       return;
+    }
+
+    if (newData.parentId && newData.settings) {
+      const parentDevice: any = await prisma.device.findFirst({
+        where: { deletedAt: null, id: newData.parentId },
+      });
+
+      if (parentDevice) {
+        const mqttClient: any = getMqttClient();
+
+        if (mqttClient) {
+          mqttClient.publish(
+            `updateSettings/${parentDevice.code}`,
+            JSON.stringify({ code: newData.code, ...data.settings })
+          );
+        }
+      }
     }
 
     res.status(200).json(newData);
@@ -322,7 +339,7 @@ const destroy = async function handler(
 ) {
   try {
     let where: any = { deletedAt: null, id: req.meta.id };
-    let data = await (prisma as any)[req.meta.moduleName].findFirst({
+    let data = await prisma.device.findFirst({
       where,
     });
 
@@ -331,7 +348,7 @@ const destroy = async function handler(
       return;
     }
 
-    const newData = await (prisma as any)[req.meta.moduleName].update({
+    const newData = await prisma.device.update({
       data: {
         deletedAt: new Date(),
         deletedUserId: req.meta.userId,
@@ -369,7 +386,7 @@ const register = async function handler(
     return;
   }
 
-  const device: any = await (prisma as any)[req.meta.moduleName].findFirst({
+  const device: any = await prisma.device.findFirst({
     where: { deletedAt: null, code: req.body.code, customerId: null },
   });
 
@@ -378,7 +395,7 @@ const register = async function handler(
     return;
   }
 
-  const registered = await (prisma as any)[req.meta.moduleName].update({
+  const registered = await prisma.device.update({
     data: {
       status: 1,
       locationId: req.body.locationId * 1,
@@ -406,7 +423,7 @@ const unregister = async function handler(
     return;
   }
 
-  const device: any = await (prisma as any)[req.meta.moduleName].findFirst({
+  const device: any = await prisma.device.findFirst({
     where: {
       deletedAt: null,
       code: req.body.code,
@@ -419,7 +436,7 @@ const unregister = async function handler(
     return;
   }
 
-  const unregistered = await (prisma as any)[req.meta.moduleName].update({
+  const unregistered = await prisma.device.update({
     data: {
       status: 0,
       customerId: null,

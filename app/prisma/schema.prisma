@@ -109,6 +109,8 @@ model Device {
   updatedUserId Int?
   deletedUserId Int?
   name          String?
+  version       String?
+  settings      Json?
   signal        Int?
   battery       Int?
   lastActivity  DateTime?
