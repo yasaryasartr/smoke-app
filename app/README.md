@@ -16,6 +16,32 @@ docker exec -it smoke-app sh
 npx prisma db pull
 npx prisma generate
 
+cyber panelde port açmak için
+> security > firewall içinden isim verip port numarası ile açıyoruz
+
+arkaplan'da 8082 yani mobil arabirimi çalıştır
+> nohup npm run web > web.log 2>&1 &
+
+arplanda nohup ile çalışanların listesini ver
+> ps -ef | grep nohup
+
+üstteki gelen yanıttan 2.alandaki PID numarasıdır, PID zorla kapatmak için
+> kill -9 <PID>
+
+*DOCKER > app tarafı
+
+tüm docker containerlarını listeler
+> docker ps -a
+
+docker containerları durdurmak için
+> docker stop containerid1 containerid2
+
+docker containerları kaldırmak için
+> docker rm containerid1 containerid2
+
+docker compose ile containerları arkaplanda ayağa kaldırma
+> docker compose up -d
+
 select * from pg_sequences
 SELECT nextval('"Location_id_seq"');
 ```

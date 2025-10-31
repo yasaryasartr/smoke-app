@@ -77,9 +77,9 @@ const version = async ({ deviceCode, payloadString }: any) => {
 
 aedes.authenticate = (
   client: any,
-  username: string,
-  password: Buffer,
-  callback: Function
+  username: any,
+  password: any,
+  callback: any
 ) => {
   if (
     username == brokerUser?.toString() &&
