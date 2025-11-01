@@ -1,4 +1,4 @@
-FROM node:23-bullseye
+FROM node:24-bullseye
 RUN apt-get update && apt-get install -y bash curl ca-certificates wget
 WORKDIR /app
 COPY package*.json ./
@@ -9,4 +9,4 @@ RUN npx prisma generate
 RUN rm -rf .next
 RUN npm run build
 EXPOSE 3001 5432 1883
-CMD ["npm", "run", "start"]
+CMD ["npm", "start"]
