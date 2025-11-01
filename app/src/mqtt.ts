@@ -107,7 +107,6 @@ aedes.on('clientDisconnect', (client: any) => {
 aedes.on('publish', async (packet: any, client: any) => {
   try {
     const payloadString = packet.payload.toString();
-    // console.log('packet', packet, ' payloadString: ', payloadString);
 
     console.log('\n mqtt → publish → ', packet, payloadString);
 

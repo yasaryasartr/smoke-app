@@ -242,6 +242,9 @@ const update = async function handler(
   if (req.body.locationId) {
     body.locationId = req.body.locationId;
   }
+  if (req.body.settings) {
+    body.settings = req.body.settings;
+  }
   if (typeof req.body.status != 'undefined' && req.body.status != null) {
     body.status = req.body.status;
   }

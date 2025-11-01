@@ -42,6 +42,9 @@ docker containerları kaldırmak için
 docker compose ile containerları arkaplanda ayağa kaldırma
 > docker compose up -d
 
+docker içindeki bir containerın canlı loglarını görmek için
+> docker logs smoke-mqtt
+
 select * from pg_sequences
 SELECT nextval('"Location_id_seq"');
 ```
@@ -82,11 +85,11 @@ mqtt://localhost:8080
 
 mobilden api ye istek geldi
 
-> device/002/updateSettings = {sleepmode:8, threshold:50}
+> PUT: device/1 > PAYLOAD: settings: {sleepmode:8, threshold:50}
 
-api bu isteği hem 002 kodlu device'ın settings'ine kaydedecek
+api bu isteği hem 1 id'li device'ın settings'ine kaydedecek
 
-> mqtt 'ye 002 nin hub koduyla "hub-001" olarak istek atacak
+> mqtt 'ye cihazın parent'ın daki hubına device koduyla "hub-001" olarak istek atacak
 
 updateSettings/hub-001 > {code:"002", sleepmode:8, threshold:50}
 
