@@ -39,6 +39,12 @@ docker containerları durdurmak için
 docker containerları kaldırmak için
 > docker rm containerid1 containerid2
 
+docker containerları tamamen durdur sil
+> docker compose down
+
+dockerr containerları tekrar build al, cache den okuma
+> docker compose build --no-cache
+
 docker compose ile containerları arkaplanda ayağa kaldırma
 > docker compose up -d
 
