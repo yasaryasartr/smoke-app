@@ -51,6 +51,15 @@ docker compose ile containerları arkaplanda ayağa kaldırma
 docker içindeki bir containerın canlı loglarını görmek için
 > docker logs smoke-mqtt
 
+docker eğer kendisi  ayağa kaldıramazsa adım adım uygulamak için
+> docker compose run app npm ls -la
+> docker compose run app npm install
+> docker compose run app npm run build
+
+schema.prisma değişiklik yapıldıktan sonra terminalde çalıştır
+> npx prisma generate
+
+
 select * from pg_sequences
 SELECT nextval('"Location_id_seq"');
 ```

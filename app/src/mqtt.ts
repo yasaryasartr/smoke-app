@@ -104,7 +104,19 @@ aedes.on('clientDisconnect', (client: any) => {
   console.log(`❌ Client disconnected: ${client?.id}`);
 });
 
+const actions = [
+  'sendDeviceMessage',
+  'updateSettings',
+  'alarmStatus',
+  'addDevice',
+  'version',
+];
+
 aedes.on('publish', async (packet: any, client: any) => {
+  if (!actions.some((action) => packet.topic.startsWith(action))) {
+    return;
+  }
+
   try {
     const payloadString = packet.payload.toString();
 

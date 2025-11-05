@@ -34,13 +34,16 @@ export default async function handler(
   }
 
   req.query = qs.parse(req.query);
-  const isLogin = req.method === 'POST' && req.query?.slug?.toString() == 'login';
-  const isForgot = req.method === 'POST' && req.query?.slug?.toString() == 'forgot';
+  const isLogin =
+    req.method === 'POST' && req.query?.slug?.toString() == 'login';
+  const isForgot =
+    req.method === 'POST' && req.query?.slug?.toString() == 'forgot';
   const isPreRegister =
     req.method === 'POST' && req.query?.slug?.toString() == 'pre-register';
   const isVerifyRegister =
     req.method === 'POST' && req.query?.slug?.toString() == 'verify-register';
-  const isProfile = req.method === 'PUT' && req.query?.slug?.toString() == 'profile';
+  const isProfile =
+    req.method === 'PUT' && req.query?.slug?.toString() == 'profile';
 
   if (!isLogin && !isForgot && !isPreRegister && !isVerifyRegister) {
     const authHeader: string = req.headers.authorization;
@@ -295,12 +298,14 @@ const preRegister = async function handler(
         orderBy: { id: 'desc' },
       });
 
+      const id = (maxId?.id ?? 0) + 1;
       const account = await prisma.account.create({
         data: {
-          id: (maxId?.id ?? 0) + 1,
+          id,
           status: 1,
           name: req.body.accountName,
           email: req.body.email,
+          code: generateAccountCode(id),
         },
       });
 
@@ -312,12 +317,14 @@ const preRegister = async function handler(
       accountId = account.id;
     }
 
+    let role = 'admin';
+
     if (req.body.registerType == 'join') {
-      accountId = req.body.accountId * 1;
+      role = 'user';
 
       //accountCheck
       const accountCheck = await prisma.account.findFirst({
-        where: { id: accountId },
+        where: { code: req.body.accountCode },
       });
       if (!accountCheck) {
         res
@@ -325,13 +332,13 @@ const preRegister = async function handler(
           .json({ error: 'Account id not found', field: 'account_id' });
         return;
       }
+
+      accountId = accountCheck.id;
     }
 
     const password = await hashPassword(req.body.password);
 
-    const verificationCode = Math.floor(
-      10000000 + Math.random() * 90000000
-    ).toString();
+    const verificationCode = generateVerificationCode();
 
     let maxId = await prisma.user.findFirst({
       select: { id: true },
@@ -344,9 +351,12 @@ const preRegister = async function handler(
         status: 0,
         name: req.body.name,
         email: req.body.email,
+        countryCode: req.body.countryCode,
+        phone: req.body.phone,
         password,
         accountId: accountId,
         verificationCode,
+        role,
       },
     });
 
@@ -589,9 +599,7 @@ const forgot = async function handler(
     return;
   }
 
-  const verificationCode = Math.floor(
-    10000000 + Math.random() * 90000000
-  ).toString();
+  const verificationCode = generateVerificationCode();
 
   const updated = await (prisma as any)[req.meta.moduleName].update({
     where: { id: user.id },
@@ -677,4 +685,12 @@ const login = async function handler(
   } catch (error) {
     res.status(500).json({ error });
   }
+};
+
+const generateVerificationCode = () => {
+  return (Math.floor(Math.random() * 900000) + 100000).toString();
+};
+
+const generateAccountCode = (id: any) => {
+  return 'NV' + String(1000001000 + id);
 };
