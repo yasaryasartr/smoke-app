@@ -21,7 +21,14 @@ export default async function handler(
 
   req.meta = { userId: req.user?.id, moduleName, types, id };
 
-  if (req.method === 'GET' && id) {
+  if (
+    req.method === 'GET' &&
+    Array.isArray(req.query.slug) &&
+    req.query.slug.length == 2 &&
+    req.query.slug[0] == 'check'
+  ) {
+    await check(req, res, req.query.slug[1]);
+  } else if (req.method === 'GET' && id) {
     await get(req, res);
   } else if (req.method === 'GET') {
     await index(req, res);
@@ -95,6 +102,19 @@ const get = async function handler(
     const data: any = await prisma.device.findFirst({
       where: { deletedAt: null, id: req.meta.id },
       include: {
+        product: {
+          include: {
+            category: {
+              include: {
+                parent: {
+                  include: {
+                    parent: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         location: {
           include: {
             parent: {
@@ -375,6 +395,43 @@ const destroy = async function handler(
   }
 };
 
+const check = async function handler(
+  req: NextApiRequest | any,
+  res: NextApiResponse,
+  code: string | any
+) {
+  if (!code) {
+    res.status(401).json({ error: 'code required' });
+    return;
+  }
+
+  const device: any = await prisma.device.findFirst({
+    where: { deletedAt: null, code, customerId: null },
+    include: {
+      product: {
+        include: {
+          category: {
+            include: {
+              parent: {
+                include: {
+                  parent: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!device) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+
+  res.status(200).json(device);
+};
+
 const register = async function handler(
   req: NextApiRequest | any,
   res: NextApiResponse
@@ -386,6 +443,11 @@ const register = async function handler(
 
   if (!req.body.name) {
     res.status(401).json({ error: 'name required' });
+    return;
+  }
+
+  if (!req.body.locationId) {
+    res.status(401).json({ error: 'locationId required' });
     return;
   }
 
